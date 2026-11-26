@@ -308,7 +308,7 @@ select{font:inherit;color:var(--text);background:var(--input);border:1px solid v
     <li><b>Stop:</b> after the current take. The next start picks up where it left off.</li>
   </ul>
   File names: <span class="mono">CatID_FXName_CreatorID_Project_Sc-Tk.wav</span>. Description, keywords (English and German) and UCS fields go into bext, iXML and INFO.
-  <div style="text-align:right;margin-top:12px"><button id="helpClose">Close</button></div>
+  <div style="display:flex;justify-content:space-between;margin-top:12px"><button id="manualBtn" title="https://dmajorsound.com/software/separator/manual.html">Read Manual</button><button id="helpClose">Close</button></div>
 </div></div>
 <div class="toast" id="toast"></div>
 <div class="dropov" id="dropOv"><div><svg width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12"/><path d="M7 10l5 5 5-5"/><path d="M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"/></svg>
@@ -698,6 +698,7 @@ window.addEventListener('pywebviewready', async () => {
   document.querySelector('.brand b').textContent = ed.name; document.title = ed.name;
   $('ver').textContent = 'V ' + i.version; $('verFoot').textContent = 'V ' + i.version + ' - developed with AI assistance';
   $('siteLink').addEventListener('click', (e) => { e.preventDefault(); api.open_url('https://dmajorsound.com'); });
+  $('manualBtn').addEventListener('click', () => api.open_url('https://dmajorsound.com/software/separator/manual.html'));
   api.check_update().then((u) => { if (u && u.latest) { $('updTxt').textContent = u.latest + ' is out'; $('upd').style.display = 'flex';
     $('upd').title = 'Separator ' + u.latest + ' is out. Click to open the download page.';
     $('upd').onclick = (e) => { e.preventDefault(); api.open_url(u.url); }; } }).catch(() => {});
