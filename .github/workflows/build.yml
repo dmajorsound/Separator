@@ -58,7 +58,7 @@ jobs:
           pkgbuild --root approot --component-plist comp.plist --install-location /Applications \
             --scripts installer/mac --identifier com.dmajorsound.separator \
             --version "$V" separator-component.pkg
-          cp installer/mac_ui/welcome.html installer/mac_ui/uninstall.html installer/mac_ui/logo.png installer/mac_ui/logo-dark.png ui/
+          cp installer/mac_ui/welcome.html installer/mac_ui/uninstall.html installer/mac_ui/logo.png installer/mac_ui/logo-dark.png installer/mac_ui/icon.png ui/
           tiffutil -cathidpicheck installer/mac_ui/background.png installer/mac_ui/background@2x.png -out ui/background.tiff
           tiffutil -cathidpicheck installer/mac_ui/background-darkAqua.png installer/mac_ui/background-darkAqua@2x.png -out ui/background-darkAqua.tiff
           sed "s/VERSION/$V/" installer/mac_ui/distribution.xml > distribution.xml

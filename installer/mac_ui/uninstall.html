@@ -1,13 +1,21 @@
 <!DOCTYPE html>
 <html><head><meta charset="utf-8">
 <style>
-body { font: 13px -apple-system, "Helvetica Neue", sans-serif; color: #333; }
+html, body { height: 100%; margin: 0; }
+body { font: 13px -apple-system, "Helvetica Neue", sans-serif; color: #333;
+       display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; }
 @media (prefers-color-scheme: dark) { body { color: #e6e6e6; } }
-h1 { font-size: 18px; margin: 0 0 6px; }
-p { margin: 0 0 6px; }
-.muted { color: #888; }
+.icon { width: 96px; margin-bottom: 20px; }
+.brand { position: absolute; top: 14px; right: 16px; width: 44px; }
+h1 { font-size: 17px; margin: 0 0 4px; }
+p { margin: 0; color: #888; }
 </style></head><body>
+<picture>
+  <source srcset="logo-dark.png" media="(prefers-color-scheme: dark)">
+  <img class="brand" src="logo.png" alt="dmajorsound">
+</picture>
+<img class="icon" src="icon.png" alt="Separator">
 <h1>Uninstall Separator</h1>
 <p>This removes Separator from your Applications folder, together with its settings.</p>
-<p class="muted">Quit Separator first. Your production sound and FX libraries stay untouched.</p>
+<p>Quit Separator first. Your production sound and FX libraries stay untouched.</p>
 </body></html>
