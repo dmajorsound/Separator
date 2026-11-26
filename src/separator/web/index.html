@@ -1,0 +1,549 @@
+<!doctype html>
+<html lang="de" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<title>Separator</title>
+<style>
+:root{
+  --bg:#2B2D31; --panel:#232428; --panel2:#2E3035; --line:#3A3D43; --line2:#2F3236;
+  --text:#E6E7EA; --dim:#A3A7AF; --btn:#3A3D43; --btnh:#454950; --input:#1E1F23;
+  --blue:#6FA6EE; --blue-strong:#4A8FE6; --blue-text:#0F1B2D; --sel:#2F3A4A;
+  --ok:#6BD45A; --warn:#E7C25A; --err:#F08A8A; --dia:217,111,224; --wave:#C9D4E3; --wave-off:#7D828B;
+  --gold:#E7C25A; --gold-bg:rgba(201,162,39,.14); --gold-line:#C9A227;
+}
+[data-theme="light"]{
+  --bg:#EEEFF1; --panel:#FFFFFF; --panel2:#F5F6F7; --line:#D9DBDF; --line2:#E8E9EC;
+  --text:#1D1E21; --dim:#5F636A; --btn:#E1E3E7; --btnh:#D5D8DD; --input:#FFFFFF;
+  --blue:#2F6FC4; --blue-strong:#2F6FC4; --blue-text:#FFFFFF; --sel:#E3EEFB;
+  --ok:#2E8B3E; --warn:#9A6B00; --err:#C0392B; --dia:186,62,196; --wave:#3D5A80; --wave-off:#A8ADB5;
+  --gold:#8A6A00; --gold-bg:rgba(201,162,39,.16); --gold-line:#C9A227;
+}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%;background:var(--bg);color:var(--text);
+  font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Helvetica Neue",sans-serif;font-size:13px;overflow:hidden;
+  -webkit-user-select:none;user-select:none}
+.mono{font-family:"SF Mono",Menlo,Monaco,monospace}
+button{white-space:nowrap;font:inherit;color:inherit;border:0;cursor:pointer;border-radius:7px;background:var(--btn);height:30px;padding:0 12px;font-weight:600}
+button:hover{background:var(--btnh)}
+button:disabled{opacity:.45;cursor:default}
+input[type=text],input[type=number]{font:inherit;color:var(--text);background:var(--input);border:1px solid var(--line);border-radius:6px;height:28px;padding:0 8px;outline:none;-webkit-user-select:text;user-select:text}
+input:focus{border-color:var(--blue)}
+input::-webkit-outer-spin-button,input::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
+input[type=checkbox]{accent-color:var(--blue-strong);width:15px;height:15px;margin:0}
+input[type=radio]{accent-color:var(--blue-strong);margin:0}
+.app{display:flex;flex-direction:column;height:100%;padding:12px 18px 8px;gap:10px}
+
+/* Kopf */
+.head > *{flex-shrink:0}
+.head .chip,.head .stats{flex-shrink:1;min-width:0}
+.head .stats span{overflow:hidden;text-overflow:ellipsis}
+.head{display:flex;align-items:center;gap:9px;padding-bottom:10px;border-bottom:1px solid var(--line);flex-wrap:nowrap;min-width:0}
+.brand{display:flex;flex-direction:column;line-height:1.1;margin-right:6px}
+.brand b{font-size:21px;font-weight:800;letter-spacing:-.3px}
+.brand span{font-size:11px;color:var(--dim)}
+.chip{display:flex;align-items:center;gap:7px;height:26px;padding:0 10px;border-radius:6px;font-size:12px;font-weight:600;max-width:160px;cursor:pointer;white-space:nowrap}
+.chip .t{overflow:hidden;text-overflow:ellipsis}
+.chip.src{border:1px solid var(--gold-line);background:var(--gold-bg);color:var(--gold)}
+.chip.dst{border:1px solid var(--line);background:var(--panel2);color:var(--text)}
+.chip.empty{border:1px dashed var(--line);background:transparent;color:var(--dim)}
+.chip .x{opacity:.8}
+.stats{display:flex;flex-direction:column;font-size:12px;line-height:1.35;white-space:nowrap}
+.stats .d{color:var(--dim)}
+.stats .g{color:var(--ok);font-weight:600}
+.grow{flex:1 1 auto;min-width:4px}
+.seg{display:flex;background:var(--btn);border-radius:7px;padding:2px}
+.seg button{height:24px;padding:0 10px;font-size:12px;background:transparent;font-weight:500;border-radius:5px}
+.seg button.on{background:var(--blue-strong);color:#fff;font-weight:600}
+.lenbox{display:flex;flex-direction:column;gap:3px;font-size:11px;color:var(--dim);white-space:nowrap;align-items:flex-end}
+.lenbox input{width:44px;height:21px;text-align:center;font-family:"SF Mono",Menlo,monospace;font-size:11px;padding:0 3px;border-radius:5px}
+.tc{display:flex;flex-direction:column;align-items:flex-end;line-height:1.05;margin:0 2px}
+.tc .v{font-family:"SF Mono",Menlo,monospace;font-size:23px;font-weight:600;color:var(--blue)}
+.tc .l{font-size:10px;color:var(--dim);letter-spacing:.6px}
+button.primary{height:36px;padding:0 18px;border-radius:8px;background:var(--blue);color:var(--blue-text);font-size:14px;font-weight:700}
+button.primary:hover{filter:brightness(1.08);background:var(--blue)}
+button.icon{width:30px;padding:0}
+.drop{position:relative}
+.menu{position:absolute;right:0;top:36px;z-index:20;background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:12px;width:340px;display:none;flex-direction:column;gap:10px;box-shadow:0 10px 30px rgba(0,0,0,.35)}
+.menu.open{display:flex}
+.menu label{display:flex;align-items:center;gap:9px;cursor:pointer}
+.menu .row{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.menu hr{border:0;border-top:1px solid var(--line);margin:2px 0;width:100%}
+
+/* Hauptbereich */
+.main{display:flex;gap:12px;flex:1 1 auto;min-height:0;position:relative}
+.box{background:var(--panel);border:1px solid var(--line);border-radius:8px;overflow:hidden;display:flex;flex-direction:column;min-height:0}
+.bar{display:flex;align-items:center;gap:12px;height:34px;padding:0 12px;background:var(--panel2);border-bottom:1px solid var(--line);font-size:12px;flex-shrink:0}
+.tabs span{color:var(--dim);cursor:pointer;margin-left:10px}
+.tabs span.on{color:var(--blue);font-weight:600}
+.list{width:340px;flex-shrink:0}
+.rows{overflow-y:auto;flex:1 1 auto}
+.frow{display:flex;align-items:center;gap:10px;height:41px;padding:0 12px;border-bottom:1px solid var(--line2);cursor:pointer}
+.frow:hover{background:var(--panel2)}
+.frow.sel{background:var(--sel)}
+.frow .b{width:3px;height:26px;border-radius:2px;flex-shrink:0}
+.frow .n{display:flex;flex-direction:column;line-height:1.3;flex:1 1 auto;min-width:0}
+.frow .n b{font-family:"SF Mono",Menlo,monospace;font-size:12px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.frow .n span{font-size:11px;color:var(--dim);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.frow .s{font-family:"SF Mono",Menlo,monospace;font-size:11px;white-space:nowrap}
+.empty-msg{padding:28px 18px;color:var(--dim);line-height:1.6}
+
+.view{flex:1 1 0;min-width:0}
+.legend{display:flex;align-items:center;gap:6px;color:var(--dim);white-space:nowrap}
+.hatch{width:14px;height:10px;border-radius:2px;background:repeating-linear-gradient(135deg,rgba(var(--dia),.6) 0 3px,rgba(var(--dia),.15) 3px 6px)}
+.ruler{display:flex;height:24px;border-bottom:1px solid var(--line);flex-shrink:0}
+.ruler .pad{width:132px;flex-shrink:0}
+.ruler .r{position:relative;flex:1 1 auto;font-family:"SF Mono",Menlo,monospace;font-size:10px;color:var(--dim)}
+.ruler .r span{position:absolute;top:5px;padding-left:4px;border-left:1px solid var(--line);height:19px}
+.lanes{position:relative;display:flex;flex-direction:column;flex:1 1 auto;min-height:0;overflow-y:auto}
+.lane{display:flex;border-bottom:1px solid var(--line2);flex-shrink:0}
+.lane .h{width:132px;flex-shrink:0;display:flex;align-items:center;gap:8px;padding:0 10px;background:var(--bg);border-right:1px solid var(--line)}
+.lane .h .nm{display:flex;flex-direction:column;line-height:1.25;min-width:0}
+.lane .h b{font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.lane .h span{font-size:10px}
+.lane canvas{flex:1 1 auto;min-width:0;display:block}
+.lane.off canvas,.lane.off .nm{opacity:.45}
+.tags{position:absolute;left:132px;right:0;top:0;height:0;pointer-events:none}
+.tags span{position:absolute;top:6px;margin-left:4px;padding:1px 5px;border-radius:3px;color:#111214;font-family:"SF Mono",Menlo,monospace;font-size:10px;font-weight:700;white-space:nowrap}
+.hint{position:absolute;left:132px;right:0;bottom:10px;text-align:center;color:var(--dim);font-size:12px;pointer-events:none}
+.outs{border-top:1px solid var(--line);padding:9px 12px;display:flex;flex-direction:column;gap:5px;font-family:"SF Mono",Menlo,monospace;font-size:11px;max-height:130px;overflow-y:auto;flex-shrink:0}
+.outs .ttl{font-family:-apple-system,sans-serif;font-size:11px;font-weight:700;letter-spacing:1.2px;color:var(--dim)}
+.outs .o{display:flex;gap:10px;align-items:center}
+.outs .o i{width:8px;height:8px;border-radius:2px;flex-shrink:0}
+.outs .o .nm{flex:1 1 auto;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.outs .o .i{color:var(--dim);white-space:nowrap}
+
+/* Spurfilter-Panel */
+.panel{position:absolute;right:0;top:0;bottom:0;width:430px;z-index:15;background:var(--panel);border:1px solid var(--line);border-radius:8px;display:none;flex-direction:column;box-shadow:-10px 0 30px rgba(0,0,0,.3)}
+.panel.open{display:flex}
+.panel .body{padding:12px 14px;display:flex;flex-direction:column;gap:10px;overflow-y:auto;flex:1 1 auto}
+.panel .lbl{font-size:11px;font-weight:700;letter-spacing:1.2px}
+.panel .f{display:grid;grid-template-columns:86px 1fr;gap:8px 10px;align-items:center}
+.panel .f input{width:100%}
+.panel .opts{display:flex;flex-direction:column;gap:7px}
+.panel .opts label{display:flex;align-items:center;gap:8px;cursor:pointer}
+.trows{border:1px solid var(--line);border-radius:8px;overflow:hidden}
+.trow{display:flex;align-items:center;gap:10px;height:32px;padding:0 10px;border-top:1px solid var(--line2);cursor:pointer}
+.trow:first-child{border-top:0}
+.trow:hover{background:var(--panel2)}
+.trow .c{width:96px;font-size:11px;font-weight:700}
+.trow .nm{flex:1 1 auto;font-family:"SF Mono",Menlo,monospace;font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.trow .k{font-family:"SF Mono",Menlo,monospace;font-size:11px;color:var(--dim)}
+.small{font-size:11px;color:var(--dim);line-height:1.5}
+
+/* Fuss */
+.info{display:flex;align-items:center;gap:14px;font-family:"SF Mono",Menlo,monospace;font-size:12px;min-height:18px}
+.info .msg{color:var(--dim);flex:1 1 auto;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.prog{width:220px;height:5px;border-radius:3px;background:var(--btn);overflow:hidden;flex-shrink:0}
+.prog div{height:100%;width:0;background:var(--blue);transition:width .3s}
+.help{font-size:12px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.foot{display:flex;align-items:center;font-size:12px;gap:12px;color:var(--dim);border-top:1px solid var(--line);padding-top:7px}
+.foot a{color:var(--dim);text-decoration:none}
+.foot a.site:hover{color:var(--text)}
+.foot .logo{height:20px;width:auto;opacity:.85}
+[data-theme="dark"] .foot .logo{filter:invert(1)}
+.upd{display:flex;align-items:center;gap:6px;color:#F06E6E !important}
+.upd i{width:8px;height:8px;border-radius:50%;background:#F06E6E;animation:blink 1.4s steps(1) infinite}
+@keyframes blink{50%{opacity:0}}
+.overlay{position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:40;display:none;align-items:center;justify-content:center}
+.overlay.open{display:flex}
+.overlay .card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:22px 26px;width:620px;max-height:80vh;overflow-y:auto;line-height:1.6}
+.overlay h2{margin:0 0 8px;font-size:17px}
+.overlay ul{padding-left:18px;margin:6px 0}
+.toast{position:fixed;left:50%;bottom:64px;transform:translateX(-50%);background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:9px 14px;z-index:50;display:none;box-shadow:0 8px 24px rgba(0,0,0,.3)}
+.toast.err{border-color:var(--err);color:var(--err)}
+</style>
+</head>
+<body>
+<div class="app">
+
+  <div class="head">
+    <svg width="40" height="40" viewBox="0 0 40 40" aria-label="Separator" role="img" style="flex-shrink:0">
+      <rect width="40" height="40" rx="9" fill="#4A8FE6"/>
+      <g stroke="#fff" stroke-width="2.6" stroke-linecap="round">
+        <line x1="8" y1="17" x2="8" y2="23"/><line x1="13" y1="12" x2="13" y2="28"/>
+        <line x1="27" y1="14" x2="27" y2="26"/><line x1="32" y1="17" x2="32" y2="23"/>
+      </g>
+      <rect x="17" y="10" width="6" height="20" rx="1.5" fill="none" stroke="#fff" stroke-width="1.4" stroke-dasharray="2 2"/>
+    </svg>
+    <div class="brand"><b>Separator</b><span id="ver">V 1.1</span></div>
+    <div class="chip src empty" id="srcChip" title="Quellordner mit den Settönen"><span class="t">Quelle wählen …</span></div>
+    <div class="chip dst empty" id="dstChip" title="Zielordner für die FX-Files"><span class="t">→ Ziel wählen …</span></div>
+    <div class="stats"><span id="st1">–</span><span class="d" id="st2"></span></div>
+    <div class="grow"></div>
+    <div class="seg" id="fmtSeg"><button data-v="wav">WAV</button><button data-v="wavpack">WavPack</button></div>
+    <div class="lenbox">
+      <div>Länge <input type="number" id="minS" min="0" step="0.5" aria-label="Minimale File-Länge in Sekunden"> – <input type="number" id="maxS" min="0" step="1" aria-label="Maximale File-Länge in Sekunden, 0 = unbegrenzt"> s</div>
+      <div title="Stille zwischen den Geräuschen im Sausage-File">Pause <input type="number" id="gapS" min="0" step="0.1" aria-label="Pause zwischen den Geräuschen in Sekunden"> s</div>
+    </div>
+    <button id="fltBtn">Spurfilter</button>
+    <div class="drop">
+      <button id="optBtn">Optionen ▾</button>
+      <div class="menu" id="optMenu">
+        <div class="row"><span>Creator ID</span><input type="text" id="creator" style="width:90px" class="mono"></div>
+        <label><input type="checkbox" id="test"> Testlauf: nur die ersten 20 Files</label>
+        <hr>
+        <label><input type="checkbox" id="group"> Ein Sausage-File pro Kategorie und Take</label>
+        <label><input type="checkbox" id="wild"> Nur-Ton / AT / Wildtrack am Stück lassen (nur Ansagen und Dialog raus)</label>
+        <label><input type="checkbox" id="bundle"> Nach dem Lauf Projekt-Sausages bauen (ähnliche Geräusche aller Takes)</label>
+        <button id="bundleBtn">Projekt-Sausages jetzt neu bauen</button>
+        <label><input type="checkbox" id="sortUcs"> In UCS-Ordner sortieren (CATEGORY/SUBCATEGORY)</label>
+        <label><input type="checkbox" id="split"> Mehrspur-Files in Einzelspuren splitten</label>
+        <hr>
+        <div class="row"><button id="openDst" style="flex:1">Zielordner öffnen</button><button id="themeBtn" style="flex:1">Hell / Dunkel</button></div>
+        <button id="helpBtn">Hilfe</button>
+      </div>
+    </div>
+    <div class="tc"><span class="v" id="eta">--:--:--</span><span class="l">VERBLEIBEND</span></div>
+    <button class="primary" id="runBtn">Start</button>
+  </div>
+
+  <div class="main">
+    <div class="box list">
+      <div class="bar">
+        <span id="listInfo" style="color:var(--dim)">Keine Quelle</span>
+        <span class="grow"></span>
+        <span class="tabs" id="tabs"><span data-t="all" class="on">Alle</span><span data-t="open">Offen</span><span data-t="done">Fertig</span><span data-t="err">Fehler</span></span>
+      </div>
+      <div class="rows" id="rows"><div class="empty-msg">Oben links den Quellordner mit den Settönen wählen. Separator liest dann nur die Header und zeigt alle Takes hier an.</div></div>
+    </div>
+
+    <div class="box view">
+      <div class="bar">
+        <span class="mono" style="font-weight:600" id="vName">–</span>
+        <span id="vMeta" style="color:var(--dim);white-space:nowrap;overflow:hidden;text-overflow:ellipsis"></span>
+        <span class="grow"></span>
+        <span class="legend"><i class="hatch"></i>Dialog / zu kurz – wird geschnitten</span>
+        <button id="followBtn" style="height:24px;font-size:11px;display:none">Live folgen</button>
+        <button id="anaBtn" style="height:24px;font-size:11px" disabled>Vorschau analysieren</button>
+      </div>
+      <div class="ruler"><div class="pad"></div><div class="r" id="ruler"></div></div>
+      <div class="lanes" id="lanes"><div class="tags" id="tags"></div></div>
+      <div class="outs" id="outs"><span class="ttl">ERGEBNIS</span><span style="color:var(--dim)">–</span></div>
+    </div>
+
+    <div class="panel" id="panel">
+      <div class="bar"><b>SPURFILTER</b><span id="pName" style="color:var(--dim)"></span><span class="grow"></span><button id="pClose" style="height:24px">Fertig</button></div>
+      <div class="body">
+        <div class="f">
+          <span style="color:var(--ok);font-weight:600">Verwenden</span><input type="text" id="keepW" class="mono">
+          <span style="color:var(--err);font-weight:600">Löschen</span><input type="text" id="dropW" class="mono">
+        </div>
+        <div class="small">Wörter mit Komma trennen. Treffer am Wortanfang: „lav“ erwischt Lav1 und Lav Hans. Verwenden schlägt Löschen, „Boom ISO“ bleibt also. Gilt nur für diesen Quellordner.</div>
+        <div class="lbl">UNBEKANNTE SPUREN</div>
+        <div class="opts">
+          <label><input type="radio" name="unk" value="fallback"> nur verwenden, wenn sonst keine Spur passt</label>
+          <label><input type="radio" name="unk" value="keep"> immer verwenden</label>
+          <label><input type="radio" name="unk" value="drop"> immer löschen</label>
+        </div>
+        <div style="display:flex;align-items:center;gap:10px">
+          <div class="lbl">SPUREN IM PROJEKT</div><span class="grow"></span>
+          <span class="small" id="scanInfo"></span><button id="scanBtn" style="height:26px">Scannen</button>
+        </div>
+        <div class="trows" id="trows"><div class="trow" style="cursor:default"><span class="small">Scannen liest alle Spurnamen aus den Headern.</span></div></div>
+        <div class="small">Klick auf eine Zeile schaltet zwischen Verwenden und Löschen um.</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="info"><span id="iFile" style="font-weight:600"></span><span class="msg" id="iMsg">Bereit</span><div class="prog"><div id="progBar"></div></div><span id="iCount">0 / 0</span></div>
+  <div class="help" id="helpLine">Häkchen bei den Spuren und der Spurfilter entscheiden, was ins FX-File kommt. Dialog wird geschnitten, Originale bleiben unverändert.</div>
+  <div class="foot"><span id="verFoot">V 1.2 - developed with AI assistance</span><span class="grow"></span>
+    <a class="upd" id="upd" href="#" style="display:none"><i></i><span id="updTxt"></span></a>
+    <a class="site" href="#" id="siteLink">dmajorsound.com</a><img class="logo" src="dmajor_mark.png" alt="dmajorsound"></div>
+</div>
+
+<div class="overlay" id="help"><div class="card">
+  <h2>Separator</h2>
+  Entfernt Dialog aus Set-Tönen und schreibt die übrigen Geräusche als UCS-benannte FX-Files mit Regionen.
+  <ul>
+    <li><b>Quelle / Ziel:</b> Chips oben links. Originale werden nie verändert.</li>
+    <li><b>Spurfilter:</b> pro Projekt. „Scannen“ zeigt alle Spurnamen, Klick schaltet Verwenden/Löschen.</li>
+    <li><b>Vorschau analysieren:</b> zeigt für den gewählten Take, was geschnitten und was behalten wird, ohne etwas zu schreiben.</li>
+    <li><b>Länge:</b> kürzere Ergebnisse werden verworfen, längere an Geräuschgrenzen geteilt (0 = unbegrenzt).</li>
+    <li><b>Optionen:</b> Creator ID, Testlauf, UCS-Ordner, Einzelspuren, Hell/Dunkel.</li>
+    <li><b>Stop:</b> nach dem aktuellen Take. Beim nächsten Start geht es dort weiter.</li>
+  </ul>
+  Dateinamen: <span class="mono">CatID_FXName_CreatorID_Projekt_Sc-Tk.wav</span>. Beschreibung, Keywords (englisch und deutsch) und UCS-Felder stehen in bext, iXML und INFO.
+  <div style="text-align:right;margin-top:12px"><button id="helpClose">Schließen</button></div>
+</div></div>
+<div class="toast" id="toast"></div>
+
+<script>
+const $ = (id) => document.getElementById(id);
+const S = { src: '', dst: '', opts: {}, filter: {}, files: [], byRel: {}, sel: null, view: null, tab: 'all',
+  running: false, seq: 0, viewSeq: 0, follow: true, outputs: {}, wavpack: false, srcName: '' };
+let api = null;
+
+const CAT_COL = [['FEET', '#E0A04A'], ['DOOR', '#6FA6EE'], ['CLOTH', '#B48CE8'], ['AMB', '#4FC6A8'], ['VEH', '#E7C25A'],
+  ['WATR', '#5CC8E8'], ['HMN', '#F09CB8'], ['FGHT', '#F08A8A'], ['TOOL', '#C99A6B'], ['BIRD', '#8FD46B'], ['ANML', '#8FD46B'],
+  ['WIND', '#A9C6F0'], ['RAIN', '#A9C6F0'], ['MUSC', '#C38AF0'], ['', '#B8BCC4']];
+const catColor = (id) => CAT_COL.find(([p]) => (id || '').startsWith(p))[1];
+
+/* ---------- kleine Helfer ---------- */
+function toast(msg, err) { const t = $('toast'); t.textContent = msg; t.className = 'toast' + (err ? ' err' : ''); t.style.display = 'block';
+  clearTimeout(toast.h); toast.h = setTimeout(() => t.style.display = 'none', 4200); }
+function hms(s) { if (s == null || !isFinite(s)) return '--:--:--'; s = Math.max(0, Math.round(s));
+  return [Math.floor(s / 3600), Math.floor(s / 60) % 60, s % 60].map((x) => String(x).padStart(2, '0')).join(':'); }
+function esc(s) { return String(s ?? '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c])); }
+const words = (s) => String(s || '').toLowerCase().split(/[,;]/).map((w) => w.trim()).filter(Boolean);
+const tokens = (n) => (String(n || '').toLowerCase().match(/[a-z]+/g) || []);
+const matchW = (tok, ws) => tok.some((t) => ws.some((w) => t === w || (w.length > 3 && t.startsWith(w))));
+function classify(name) { const t = tokens(name);
+  if (matchW(t, words(S.filter.keep))) return 'keep'; if (matchW(t, words(S.filter.drop))) return 'drop'; return 'unknown'; }
+function usedSet(names) { // wie select_channels im Kern
+  if (!names.some(Boolean)) return names.map((_, i) => i);
+  const cls = names.map(classify), keep = [], unk = [];
+  cls.forEach((c, i) => { if (c === 'keep') keep.push(i); else if (c === 'unknown') unk.push(i); });
+  if (S.filter.unknown === 'keep') return keep.concat(unk).sort((a, b) => a - b);
+  if (S.filter.unknown === 'drop') return keep; return keep.length ? keep : unk; }
+function toggleTrack(name) { // erstes Wort des Spurnamens zwischen Verwenden und Löschen schalten
+  const w = tokens(name)[0]; if (!w) return;
+  let keep = words(S.filter.keep), drop = words(S.filter.drop);
+  if (classify(name) === 'keep') { keep = keep.filter((x) => !tokens(name).some((t) => t === x || (x.length > 3 && t.startsWith(x)))); if (!drop.includes(w)) drop.push(w); }
+  else { drop = drop.filter((x) => x !== w); if (!keep.includes(w)) keep.push(w); }
+  S.filter.keep = keep.join(', '); S.filter.drop = drop.join(', '); syncFilterInputs(); persist(); renderAll(); }
+
+/* ---------- Speichern ---------- */
+function readOpts() { S.opts.min_s = parseFloat($('minS').value) || 0; S.opts.max_s = parseFloat($('maxS').value) || 0;
+  S.opts.creator = $('creator').value.trim(); S.opts.test = $('test').checked;
+  const g = parseFloat($('gapS').value); S.opts.gap_s = isFinite(g) ? Math.max(0, g) : 0.5; S.opts.group = $('group').checked;
+  S.opts.wild = $('wild').checked; S.opts.bundle = $('bundle').checked;
+  S.filter.sort_ucs = $('sortUcs').checked; S.filter.split = $('split').checked;
+  S.filter.keep = $('keepW').value; S.filter.drop = $('dropW').value;
+  const u = document.querySelector('input[name=unk]:checked'); if (u) S.filter.unknown = u.value; }
+function persist() { clearTimeout(persist.h); persist.h = setTimeout(() => api && api.save(S.src, S.dst, S.opts, S.src ? S.filter : null), 400); }
+function syncFilterInputs() { $('keepW').value = S.filter.keep || ''; $('dropW').value = S.filter.drop || '';
+  document.querySelectorAll('input[name=unk]').forEach((r) => r.checked = r.value === (S.filter.unknown || 'fallback'));
+  $('sortUcs').checked = !!S.filter.sort_ucs; $('split').checked = !!S.filter.split; }
+
+/* ---------- Kopf ---------- */
+function renderHead() {
+  const sc = $('srcChip'), dc = $('dstChip');
+  sc.className = 'chip src' + (S.src ? '' : ' empty');
+  sc.innerHTML = S.src ? `<span class="t">${esc(S.srcName)}</span><span class="x" id="srcX">×</span>` : '<span class="t">Quelle wählen …</span>';
+  dc.className = 'chip dst' + (S.dst ? '' : ' empty');
+  dc.innerHTML = `<span class="t">→ ${S.dst ? esc(S.dst.split('/').filter(Boolean).pop()) : 'Ziel wählen …'}</span>`;
+  sc.title = S.src || 'Quellordner mit den Settönen'; dc.title = S.dst || 'Zielordner für die FX-Files';
+  const n = S.files.length, h = S.files.reduce((a, f) => a + (f.dur || 0), 0) / 3600;
+  const fin = S.files.filter((f) => ['ok', 'dialog', 'notrack'].includes(f.status)).length;
+  $('st1').textContent = n ? `${n} Files · ${h < 10 ? h.toFixed(1) : Math.round(h)} h` : 'Keine Quelle';
+  $('st2').innerHTML = n ? `${(S.sr / 1000) || '–'} kHz · ${S.bits || '–'} bit · <span class="g">${fin} fertig</span>` : '';
+  document.querySelectorAll('#fmtSeg button').forEach((b) => b.classList.toggle('on', b.dataset.v === (S.opts.fmt || 'wav')));
+  $('runBtn').textContent = S.running ? 'Stop' : (S.opts.test ? 'Testlauf' : 'Start');
+  $('anaBtn').disabled = S.running || !S.sel;
+}
+
+/* ---------- Liste ---------- */
+const ST = { open: ['–', 'var(--dim)', 'var(--line)'], running: ['läuft …', 'var(--blue)', 'var(--blue)'],
+  ok: [null, 'var(--ok)', 'var(--ok)'], dialog: ['nur Dialog', 'var(--err)', 'var(--err)'],
+  notrack: ['keine Spur', 'var(--warn)', 'var(--warn)'], error: ['Fehler', 'var(--err)', 'var(--err)'] };
+function fileSub(f) { const p = [];
+  if (f.scene) p.push('Sc ' + f.scene); if (f.take) p.push('Tk ' + f.take); if (f.wild) p.push('Nur-Ton');
+  const names = f.tracks || [], used = usedSet(names);
+  if (names.some(Boolean)) p.push(used.map((i) => names[i]).filter(Boolean).join(', ') || 'keine Spur');
+  else if (f.ch) p.push(f.ch + ' Spur' + (f.ch > 1 ? 'en' : ''));
+  return p.join(' · '); }
+function renderList() {
+  const rows = $('rows');
+  if (!S.files.length) { rows.innerHTML = `<div class="empty-msg">${S.src ? 'Keine WAV-Files in diesem Ordner gefunden.' : 'Oben links den Quellordner mit den Settönen wählen. Separator liest dann nur die Header und zeigt alle Takes hier an.'}</div>`;
+    $('listInfo').textContent = S.src ? '0 Takes' : 'Keine Quelle'; return; }
+  const flt = { all: () => true, open: (f) => f.status === 'open' || f.status === 'running',
+    done: (f) => ['ok', 'dialog', 'notrack'].includes(f.status), err: (f) => f.status === 'error' };
+  const list = S.files.filter(flt[S.tab]);
+  $('listInfo').textContent = `${list.length} von ${S.files.length} Takes`;
+  rows.innerHTML = list.map((f) => { const st = ST[f.status] || ST.open;
+    const txt = f.status === 'ok' ? `${f.count} File${f.count === 1 ? '' : 's'}` : st[0];
+    return `<div class="frow${S.sel === f.rel ? ' sel' : ''}" data-rel="${esc(f.rel)}"><span class="b" style="background:${st[2]}"></span>
+      <div class="n"><b>${esc(f.rel)}</b><span>${esc(fileSub(f))}</span></div><span class="s" style="color:${st[1]}">${esc(txt)}</span></div>`; }).join('');
+}
+function updateRow(rel) { const f = S.byRel[rel]; if (!f) return;
+  const el = document.querySelector(`.frow[data-rel="${CSS.escape(rel)}"]`); if (!el) return renderList();
+  const st = ST[f.status] || ST.open; const txt = f.status === 'ok' ? `${f.count} File${f.count === 1 ? '' : 's'}` : st[0];
+  el.querySelector('.b').style.background = st[2]; const s = el.querySelector('.s'); s.textContent = txt; s.style.color = st[1]; }
+
+/* ---------- Spur-Ansicht ---------- */
+function renderView() {
+  const v = S.view, lanesEl = $('lanes');
+  lanesEl.querySelectorAll('.lane,.hint').forEach((e) => e.remove()); $('tags').innerHTML = ''; $('ruler').innerHTML = '';
+  if (!v || v.error) { $('vName').textContent = v && v.error ? 'Fehler' : '–'; $('vMeta').textContent = v && v.error ? v.error : '';
+    const h = document.createElement('div'); h.className = 'hint'; h.style.bottom = '45%';
+    h.textContent = S.files.length ? 'Einen Take links anklicken.' : ''; lanesEl.appendChild(h); renderOuts(); return; }
+  $('vName').textContent = v.rel || v.file;
+  const meta = []; if (v.scene) meta.push('Sc ' + v.scene); if (v.take) meta.push('Tk ' + v.take);
+  meta.push(v.tc); if (v.note) meta.push('„' + v.note + '“'); $('vMeta').textContent = meta.join(' · ');
+  const dur = v.dur || 1, step = [5, 10, 15, 30, 60, 120, 300, 600, 900, 1800].find((s) => dur / s <= 8) || 3600;
+  for (let s = 0; s < dur; s += step) { const sp = document.createElement('span'); sp.style.left = (s / dur * 100) + '%';
+    sp.textContent = s >= 3600 ? hms(s) : `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, '0')}`; $('ruler').appendChild(sp); }
+  const names = v.lanes.map((l) => l.name), used = new Set(usedSet(names.map((n, i) => v.lanes.some((l) => !/^Track \d+$/.test(l.name)) ? n : '')));
+  const avail = lanesEl.clientHeight || 300, lh = Math.max(56, Math.min(150, Math.floor(avail / Math.max(1, v.lanes.length))));
+  v.lanes.forEach((ln, i) => { const on = used.has(i), cls = v.lanes.some((l) => !/^Track \d+$/.test(l.name)) ? classify(ln.name) : 'keep';
+    const lane = document.createElement('div'); lane.className = 'lane' + (on ? '' : ' off'); lane.style.height = lh + 'px';
+    const note = on ? ['verwendet', 'var(--ok)'] : cls === 'drop' ? ['gelöscht', 'var(--err)'] : ['unbekannt', 'var(--warn)'];
+    lane.innerHTML = `<div class="h"><input type="checkbox" ${on ? 'checked' : ''} aria-label="${esc(ln.name)} verwenden">
+      <div class="nm"><b title="${esc(ln.name)}">${esc(ln.name)}</b><span style="color:${note[1]}">${note[0]}</span></div></div><canvas></canvas>`;
+    lane.querySelector('input').addEventListener('change', () => toggleTrack(ln.name));
+    lanesEl.appendChild(lane); drawLane(lane.querySelector('canvas'), ln, v, on, lh); });
+  if (v.analysed && v.lanes.length) {
+    const seen = {}; v.fx.forEach(([s, e, id]) => { if ((e - s) / dur < 0.035) return;
+      const t = document.createElement('span'); t.style.left = (s / dur * 100) + '%'; t.style.background = catColor(id); t.textContent = id; $('tags').appendChild(t); });
+  }
+  if (!v.analysed) { const h = document.createElement('div'); h.className = 'hint';
+    h.textContent = 'Noch nicht analysiert. „Vorschau analysieren“ zeigt, was geschnitten wird und welche FX bleiben.'; lanesEl.appendChild(h); }
+  else if (!v.keep.length) { const h = document.createElement('div'); h.className = 'hint'; h.style.color = 'var(--err)';
+    h.textContent = 'Nichts Brauchbares: nur Dialog, zu kurz oder keine verwendete Spur.'; lanesEl.appendChild(h); }
+  renderOuts();
+}
+function drawLane(cv, ln, v, on, lh) {
+  const dpr = window.devicePixelRatio || 1, w = cv.clientWidth || 600, h = lh - 1;
+  cv.width = w * dpr; cv.height = h * dpr; cv.style.height = h + 'px'; const g = cv.getContext('2d'); g.scale(dpr, dpr);
+  const cs = getComputedStyle(document.documentElement), dia = cs.getPropertyValue('--dia').trim(), dur = v.dur || 1, X = (s) => s / dur * w;
+  if (v.analysed && on) {
+    let t = 0; const cuts = []; v.keep.forEach(([a, b]) => { if (a > t) cuts.push([t, a]); t = Math.max(t, b); }); if (t < dur) cuts.push([t, dur]);
+    cuts.forEach(([a, b]) => { const x0 = X(a), x1 = X(b); g.fillStyle = `rgba(${dia},.10)`; g.fillRect(x0, 5, x1 - x0, h - 10);
+      g.save(); g.beginPath(); g.rect(x0, 5, x1 - x0, h - 10); g.clip(); g.strokeStyle = `rgba(${dia},.35)`; g.lineWidth = 2;
+      for (let x = x0 - h; x < x1 + h; x += 8) { g.beginPath(); g.moveTo(x, h - 5); g.lineTo(x + h, 5); g.stroke(); } g.restore();
+      g.strokeStyle = `rgba(${dia},.6)`; g.lineWidth = 1; g.strokeRect(x0 + .5, 5.5, Math.max(0, x1 - x0 - 1), h - 11); });
+    v.fx.forEach(([a, b, id]) => { const c = catColor(id), x0 = X(a), x1 = X(b);
+      g.fillStyle = c + '30'; g.fillRect(x0, 5, x1 - x0, h - 10); g.fillStyle = c; g.fillRect(x0, 5, 2, h - 10); });
+  }
+  const pk = ln.peaks || [], n = pk.length, mid = h / 2, amp = (h - 14) / 2;
+  g.fillStyle = cs.getPropertyValue(on ? '--wave' : '--wave-off').trim(); g.beginPath(); g.moveTo(0, mid);
+  for (let i = 0; i < n; i++) g.lineTo(i / (n - 1) * w, mid - pk[i] * amp);
+  for (let i = n - 1; i >= 0; i--) g.lineTo(i / (n - 1) * w, mid + pk[i] * amp);
+  g.closePath(); g.fill();
+}
+function renderOuts() {
+  const o = S.sel ? S.outputs[S.sel] : null, el = $('outs'), f = S.sel ? S.byRel[S.sel] : null;
+  let html = '<span class="ttl">ERGEBNIS</span>';
+  if (o && o.length) html += o.map((x) => `<div class="o"><i style="background:${catColor(x.catid)}"></i><span class="nm" title="${esc(x.dir + '/' + x.name)}">${esc(x.name)}</span><span class="i">${x.dur} s · ${x.markers} Regionen</span></div>`).join('');
+  else if (f && f.status === 'ok') html += `<span style="color:var(--dim)">${f.count} File${f.count === 1 ? '' : 's'} geschrieben (in einem früheren Lauf)</span>`;
+  else if (f && f.status === 'running') html += '<span style="color:var(--blue)">wird bearbeitet …</span>';
+  else if (f && ST[f.status] && f.status !== 'open') html += `<span style="color:${ST[f.status][1]}">${ST[f.status][0]}</span>`;
+  else html += '<span style="color:var(--dim)">–</span>';
+  el.innerHTML = html;
+}
+function renderAll() { renderHead(); renderList(); renderView(); }
+
+/* ---------- Aktionen ---------- */
+async function setSource(path) {
+  if (!path) return; S.src = path; S.sel = null; S.view = null; S.outputs = {};
+  S.filter = await api.project_filter(path); syncFilterInputs();
+  $('iMsg').textContent = 'Lese Header …'; await loadFiles(); persist(); }
+async function loadFiles() {
+  if (!S.src) { S.files = []; S.byRel = {}; renderAll(); return; }
+  const r = await api.list_files(S.src, S.dst);
+  if (!r.ok) { toast(r.msg, true); return; }
+  S.files = r.files; S.byRel = {}; S.files.forEach((f) => S.byRel[f.rel] = f); S.sr = r.sr; S.bits = r.bits; S.srcName = r.name;
+  $('pName').textContent = '· ' + r.name; $('iMsg').textContent = `${r.files.length} Takes geladen`;
+  renderAll(); if (!S.sel && S.files.length) select(S.files[0].rel); }
+async function select(rel) {
+  S.sel = rel; if (S.running) { S.follow = false; $('followBtn').style.display = ''; }
+  document.querySelectorAll('.frow').forEach((e) => e.classList.toggle('sel', e.dataset.rel === rel));
+  $('iFile').textContent = rel; renderHead();
+  readOpts(); S.view = await api.preview(S.src, rel, S.filter); renderView(); }
+async function analyse() {
+  if (!S.sel || S.running) return; readOpts(); $('anaBtn').disabled = true; $('iMsg').textContent = 'Analysiere ' + S.sel + ' …';
+  const v = await api.analyse_preview(S.src, S.sel, S.filter, S.opts); $('anaBtn').disabled = false;
+  if (v && v.error) { toast(v.error, true); return; }
+  S.view = v; renderView(); const cats = [...new Set(v.fx.map((f) => f[2]))];
+  $('iMsg').textContent = `Vorschau: ${v.fx.length} Regionen, ${v.keep.reduce((a, [s, e]) => a + e - s, 0).toFixed(0)} s von ${v.dur.toFixed(0)} s bleiben` + (S.opts.group !== false && cats.length ? ` → ${cats.length} Sausage-File${cats.length > 1 ? 's' : ''}: ${cats.join(', ')}` : ''); }
+async function runStop() {
+  if (S.running) { await api.stop(); $('runBtn').textContent = 'Stoppe …'; $('iMsg').textContent = 'Stoppe nach diesem Take …'; return; }
+  readOpts(); const r = await api.start(S.src, S.dst, S.opts, S.filter, null);
+  if (!r.ok) { toast(r.msg, true); return; }
+  S.running = true; S.follow = true; $('followBtn').style.display = 'none'; renderHead(); }
+
+/* ---------- Polling ---------- */
+async function poll() {
+  if (!api) return;
+  try {
+    const p = await api.poll(S.seq, S.viewSeq); S.seq = p.seq;
+    for (const e of p.events) { const d = e.data;
+      if (e.kind === 'log') { $('iMsg').textContent = String(d).split('\n')[0]; if (String(d).startsWith('FEHLER')) toast(d, true); }
+      else if (e.kind === 'start' && S.byRel[d.rel]) { S.byRel[d.rel].status = 'running'; updateRow(d.rel);
+        if (S.follow) { S.sel = d.rel; $('iFile').textContent = d.rel; document.querySelectorAll('.frow').forEach((x) => x.classList.toggle('sel', x.dataset.rel === d.rel));
+          const el = document.querySelector(`.frow[data-rel="${CSS.escape(d.rel)}"]`); if (el) el.scrollIntoView({ block: 'nearest' }); } }
+      else if (e.kind === 'done' && S.byRel[d.rel]) { const f = S.byRel[d.rel]; f.status = d.status; f.count = d.outputs.length;
+        S.outputs[d.rel] = d.outputs; updateRow(d.rel); if (d.rel === S.sel) renderOuts(); }
+      else if (e.kind === 'bundle_file') { (S.bundles = S.bundles || []).push(d); }
+      else if (e.kind === 'bundle_done') { toast(`Projekt-Sausages: ${d.files} Files aus ${d.regions} Regionen – Ordner „Projekt-Sausages“ im Ziel.`); }
+      else if (e.kind === 'stopped') { S.running = false; $('eta').textContent = '--:--:--';
+        if (!d.bundle) toast(d.stopped ? 'Gestoppt. Beim nächsten Start geht es hier weiter.' : 'Fertig.'); renderHead(); renderList(); }
+    }
+    if (p.view && S.follow) { S.view = p.view; renderView(); }
+    S.viewSeq = p.view_seq;
+    if (p.running) $('eta').textContent = hms(p.eta);
+    if (p.total) { $('iCount').textContent = `${p.done} / ${p.total}`; $('progBar').style.width = (p.done / p.total * 100) + '%'; }
+    if (S.running !== p.running && !p.running) { S.running = false; renderHead(); }
+    renderHead();
+  } catch (err) { /* Fenster wird gerade geschlossen */ }
+  setTimeout(poll, S.running ? 400 : 1200);
+}
+
+/* ---------- Spurfilter-Panel ---------- */
+async function scan() {
+  if (!S.src) { toast('Bitte zuerst einen Quellordner wählen.', true); return; }
+  readOpts(); $('scanInfo').textContent = 'scanne …'; const r = await api.scan_tracks(S.src, S.filter); S.scanRows = r.rows;
+  $('scanInfo').textContent = `${r.files} Files · ${r.rows.length} Spurnamen`; renderScan(); }
+function renderScan() {
+  const rows = S.scanRows || []; if (!rows.length) return;
+  const lab = { keep: ['✓ VERWENDEN', 'var(--ok)'], drop: ['✗ LÖSCHEN', 'var(--err)'], unknown: ['? UNBEKANNT', 'var(--warn)'] };
+  $('trows').innerHTML = rows.map((r) => { const c = r.name.startsWith('(') ? 'keep' : classify(r.name);
+    return `<div class="trow" data-n="${esc(r.name)}"><span class="c" style="color:${lab[c][1]}">${lab[c][0]}</span><span class="nm">${esc(r.name)}</span><span class="k">${r.count}×</span></div>`; }).join('');
+}
+
+/* ---------- Verdrahtung ---------- */
+function wire() {
+  $('srcChip').addEventListener('click', async (e) => { if (e.target.id === 'srcX') { S.src = ''; S.files = []; S.view = null; S.sel = null; renderAll(); persist(); return; }
+    const p = await api.pick_folder('Quelle'); if (p) setSource(p); });
+  $('dstChip').addEventListener('click', async () => { const p = await api.pick_folder('Ziel'); if (p) { S.dst = p; persist(); loadFiles(); } });
+  document.querySelectorAll('#fmtSeg button').forEach((b) => b.addEventListener('click', () => {
+    if (b.dataset.v === 'wavpack' && !S.wavpack) toast('WavPack ist nicht installiert. Im Terminal: brew install wavpack', true);
+    S.opts.fmt = b.dataset.v; renderHead(); persist(); }));
+  ['minS', 'maxS', 'gapS', 'creator'].forEach((id) => $(id).addEventListener('change', () => { readOpts(); persist(); }));
+  ['test', 'sortUcs', 'split', 'group', 'wild', 'bundle'].forEach((id) => $(id).addEventListener('change', () => { readOpts(); persist(); renderHead(); }));
+  $('optBtn').addEventListener('click', (e) => { e.stopPropagation(); $('optMenu').classList.toggle('open'); });
+  $('optMenu').addEventListener('click', (e) => e.stopPropagation());
+  document.addEventListener('click', () => $('optMenu').classList.remove('open'));
+  $('openDst').addEventListener('click', () => api.open_folder(S.dst));
+  $('themeBtn').addEventListener('click', () => { S.opts.theme = S.opts.theme === 'light' ? 'dark' : 'light';
+    document.documentElement.dataset.theme = S.opts.theme; persist(); renderView(); });
+  $('helpBtn').addEventListener('click', () => { $('optMenu').classList.remove('open'); $('help').classList.add('open'); });
+  $('helpClose').addEventListener('click', () => $('help').classList.remove('open'));
+  $('runBtn').addEventListener('click', runStop);
+  $('bundleBtn').addEventListener('click', async () => { $('optMenu').classList.remove('open'); readOpts();
+    const r = await api.bundle(S.dst, S.opts); if (!r.ok) { toast(r.msg, true); return; }
+    S.running = true; S.bundles = []; $('iMsg').textContent = 'Baue Projekt-Sausages …'; renderHead(); });
+  $('anaBtn').addEventListener('click', analyse);
+  $('followBtn').addEventListener('click', () => { S.follow = true; $('followBtn').style.display = 'none'; S.viewSeq = 0; });
+  $('fltBtn').addEventListener('click', () => { $('panel').classList.toggle('open'); if ($('panel').classList.contains('open') && !S.scanRows && S.src) scan(); });
+  $('pClose').addEventListener('click', () => { $('panel').classList.remove('open'); renderAll(); });
+  $('scanBtn').addEventListener('click', scan);
+  ['keepW', 'dropW'].forEach((id) => $(id).addEventListener('input', () => { readOpts(); renderScan(); persist(); clearTimeout(wire.h); wire.h = setTimeout(renderAll, 300); }));
+  document.querySelectorAll('input[name=unk]').forEach((r) => r.addEventListener('change', () => { readOpts(); persist(); renderAll(); }));
+  $('trows').addEventListener('click', (e) => { const r = e.target.closest('.trow'); if (r && r.dataset.n && !r.dataset.n.startsWith('(')) { toggleTrack(r.dataset.n); renderScan(); } });
+  $('rows').addEventListener('click', (e) => { const r = e.target.closest('.frow'); if (r) select(r.dataset.rel); });
+  $('rows').addEventListener('dblclick', (e) => { const r = e.target.closest('.frow'); if (r) analyse(); });
+  $('tabs').addEventListener('click', (e) => { const t = e.target.dataset.t; if (!t) return; S.tab = t;
+    document.querySelectorAll('#tabs span').forEach((s) => s.classList.toggle('on', s.dataset.t === t)); renderList(); });
+  window.addEventListener('resize', () => { clearTimeout(wire.r); wire.r = setTimeout(renderView, 120); });
+  document.addEventListener('keydown', (e) => { if (e.key === 'Escape') { $('help').classList.remove('open'); $('panel').classList.remove('open'); $('optMenu').classList.remove('open'); } });
+}
+
+window.addEventListener('pywebviewready', async () => {
+  api = window.pywebview.api; wire();
+  const i = await api.init();
+  S.src = i.src; S.dst = i.dst; S.opts = i.opts; S.filter = i.filter; S.wavpack = i.wavpack;
+  $('ver').textContent = 'V ' + i.version; $('verFoot').textContent = 'V ' + i.version + ' - developed with AI assistance';
+  $('siteLink').addEventListener('click', (e) => { e.preventDefault(); api.open_url('https://dmajorsound.com'); });
+  api.check_update().then((u) => { if (u && u.latest) { $('updTxt').textContent = u.latest + ' is out'; $('upd').style.display = 'flex';
+    $('upd').onclick = (e) => { e.preventDefault(); api.open_url(u.url); }; } }).catch(() => {});
+  document.documentElement.dataset.theme = S.opts.theme || 'dark';
+  $('minS').value = S.opts.min_s; $('maxS').value = S.opts.max_s; $('creator').value = S.opts.creator; $('test').checked = !!S.opts.test;
+  $('gapS').value = S.opts.gap_s ?? 0.5; $('group').checked = S.opts.group !== false;
+  $('wild').checked = S.opts.wild !== false; $('bundle').checked = S.opts.bundle !== false;
+  syncFilterInputs(); renderAll(); if (S.src) loadFiles(); poll();
+});
+</script>
+</body>
+</html>

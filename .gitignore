@@ -1,0 +1,9 @@
+__pycache__/
+*.pyc
+build/
+dist/
+dmg/
+icon.iconset/
+assets/Separator.icns
+*.dmg
+.DS_Store
