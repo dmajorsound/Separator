@@ -80,6 +80,7 @@ button.icon{width:30px;padding:0}
 .frow{display:flex;align-items:center;gap:10px;height:41px;padding:0 12px;border-bottom:1px solid var(--line2);cursor:pointer}
 .frow:hover{background:var(--panel2)}
 .frow.sel{background:var(--sel)}
+.frow .ck{flex-shrink:0;margin-right:-2px}
 .frow .b{width:3px;height:26px;border-radius:2px;flex-shrink:0}
 .frow .n{display:flex;flex-direction:column;line-height:1.3;flex:1 1 auto;min-width:0}
 .frow .n b{font-family:"SF Mono",Menlo,monospace;font-size:12px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
@@ -196,6 +197,8 @@ select{font:inherit;color:var(--text);background:var(--input);border:1px solid v
       <button id="optBtn">Options ▾</button>
       <div class="menu" id="optMenu">
         <div class="row"><label for="audioDev" style="cursor:default">Audio output</label><select id="audioDev"><option value="">System default</option></select></div>
+        <div class="row"><label for="minLevel" style="cursor:default" title="Parts whose peak stays below this level are cut and never written">Min. level</label><span><input type="number" id="minLevel" step="1" max="0" min="-120" style="width:64px;text-align:right" class="mono"> dBFS</span></div>
+        <div class="row"><label for="vocal" style="cursor:default">Screams, cries, laughs</label><select id="vocal"><option value="keep">Keep as own files</option><option value="cut">Cut like dialogue</option></select></div>
         <div class="row"><span>Creator ID</span><input type="text" id="creator" style="width:90px" class="mono"></div>
         <label><input type="checkbox" id="test"> Test run: first 20 files only</label>
         <hr>
@@ -217,6 +220,7 @@ select{font:inherit;color:var(--text);background:var(--input);border:1px solid v
   <div class="main">
     <div class="box list">
       <div class="bar">
+        <input type="checkbox" id="checkAll" aria-label="Select all takes shown" title="Select all takes shown">
         <span id="listInfo" style="color:var(--dim)">No source</span>
         <span class="grow"></span>
         <span class="tabs" id="tabs"><span data-t="all" class="on">All</span><span data-t="open">Open</span><span data-t="done">Done</span><span data-t="err">Errors</span></span>
@@ -282,6 +286,8 @@ select{font:inherit;color:var(--text);background:var(--input);border:1px solid v
     <li><b>Analyze preview:</b> shows what gets cut and what stays for the selected take, without writing anything. Double-click a take does the same.</li>
     <li><b>Length:</b> shorter results are dropped, longer ones are split at sound boundaries (0 = unlimited). <b>Gap:</b> silence between sounds in a sausage file.</li>
     <li><b>Options:</b> Creator ID, test run, sausage files, wild tracks, project sausages, UCS folders, single tracks, light/dark.</li>
+    <li><b>Selected takes only:</b> tick takes in the list (or Cmd-click, Shift-click for a range). Start then converts only those, also takes that were done before.</li>
+    <li><b>Min. level</b> (Options): parts quieter than this are cut and never written.</li>
     <li><b>Stop:</b> after the current take. The next start picks up where it left off.</li>
   </ul>
   File names: <span class="mono">CatID_FXName_CreatorID_Project_Sc-Tk.wav</span>. Description, keywords (English and German) and UCS fields go into bext, iXML and INFO.
@@ -293,7 +299,7 @@ select{font:inherit;color:var(--text);background:var(--input);border:1px solid v
 
 <script>
 const $ = (id) => document.getElementById(id);
-const S = { items: null, root: '', src: '', dst: '', opts: {}, filter: {}, files: [], byRel: {}, sel: null, view: null, tab: 'all',
+const S = { checked: new Set(), items: null, root: '', src: '', dst: '', opts: {}, filter: {}, files: [], byRel: {}, sel: null, view: null, tab: 'all',
   running: false, seq: 0, viewSeq: 0, follow: true, outputs: {}, wavpack: false, srcName: '' };
 let api = null;
 
@@ -329,6 +335,7 @@ function toggleTrack(name) { // switch the first word of the track name between 
 /* ---------- saving ---------- */
 function readOpts() { S.opts.min_s = parseFloat($('minS').value) || 0; S.opts.max_s = parseFloat($('maxS').value) || 0;
   S.opts.creator = $('creator').value.trim(); S.opts.test = $('test').checked;
+  const ml = parseFloat($('minLevel').value); S.opts.min_level = isFinite(ml) ? Math.min(0, ml) : -55; S.opts.vocal = $('vocal').value;
   const g = parseFloat($('gapS').value); S.opts.gap_s = isFinite(g) ? Math.max(0, g) : 0.5; S.opts.group = $('group').checked;
   S.opts.wild = $('wild').checked; S.opts.bundle = $('bundle').checked;
   S.filter.sort_ucs = $('sortUcs').checked; S.filter.split = $('split').checked;
@@ -352,7 +359,7 @@ function renderHead() {
   $('st1').textContent = n ? `${n} files · ${h < 10 ? h.toFixed(1) : Math.round(h)} h` : 'No source';
   $('st2').innerHTML = n ? `${(S.sr / 1000) || '–'} kHz · ${S.bits || '–'} bit · <span class="g">${fin} done</span>` : '';
   document.querySelectorAll('#fmtSeg button').forEach((b) => b.classList.toggle('on', b.dataset.v === (S.opts.fmt || 'wav')));
-  $('runBtn').textContent = S.running ? 'Stop' : (S.opts.test ? 'Test Run' : 'Start');
+  $('runBtn').textContent = S.running ? 'Stop' : (S.checked.size ? `Convert ${S.checked.size} selected` : (S.opts.test ? 'Test Run' : 'Start'));
   $('anaBtn').disabled = S.running || !S.sel;
 }
 
@@ -373,12 +380,15 @@ function renderList() {
   const flt = { all: () => true, open: (f) => f.status === 'open' || f.status === 'running',
     done: (f) => ['ok', 'dialog', 'notrack'].includes(f.status), err: (f) => f.status === 'error' };
   const list = S.files.filter(flt[S.tab]);
-  $('listInfo').textContent = `${list.length} of ${S.files.length} takes`;
+  $('listInfo').textContent = `${list.length} of ${S.files.length} takes` + (S.checked.size ? ` · ${S.checked.size} selected` : '');
+  setTimeout(updateCheckAll, 0);
   rows.innerHTML = list.map((f) => { const st = ST[f.status] || ST.open;
     const txt = f.status === 'ok' ? `${f.count} file${f.count === 1 ? '' : 's'}` : st[0];
-    return `<div class="frow${S.sel === f.rel ? ' sel' : ''}" data-rel="${esc(f.rel)}"><span class="b" style="background:${st[2]}"></span>
+    return `<div class="frow${S.sel === f.rel ? ' sel' : ''}" data-rel="${esc(f.rel)}"><input type="checkbox" class="ck" ${S.checked.has(f.rel) ? 'checked' : ''} aria-label="Select ${esc(f.rel)}"><span class="b" style="background:${st[2]}"></span>
       <div class="n"><b>${esc(f.rel)}</b><span>${esc(fileSub(f))}</span></div><span class="s" style="color:${st[1]}">${esc(txt)}</span></div>`; }).join('');
 }
+function updateCheckAll() { const vis = [...document.querySelectorAll('.frow')].map((x) => x.dataset.rel), ca = $('checkAll');
+  ca.checked = vis.length > 0 && vis.every((x) => S.checked.has(x)); ca.indeterminate = !ca.checked && vis.some((x) => S.checked.has(x)); }
 function updateRow(rel) { const f = S.byRel[rel]; if (!f) return;
   const el = document.querySelector(`.frow[data-rel="${CSS.escape(rel)}"]`); if (!el) return renderList();
   const st = ST[f.status] || ST.open; const txt = f.status === 'ok' ? `${f.count} file${f.count === 1 ? '' : 's'}` : st[0];
@@ -460,7 +470,8 @@ async function loadFiles() {
   const r = await api.list_files(S.src, S.dst, S.items);
   if (!r.ok) { toast(r.msg, true); return; }
   S.root = r.src; if (S.items) S.src = r.src;
-  S.files = r.files; S.byRel = {}; S.files.forEach((f) => S.byRel[f.rel] = f); S.sr = r.sr; S.bits = r.bits; S.srcName = r.name;
+  S.files = r.files; S.byRel = {}; S.files.forEach((f) => S.byRel[f.rel] = f);
+  S.checked = new Set([...S.checked].filter((x) => S.byRel[x])); S.sr = r.sr; S.bits = r.bits; S.srcName = r.name;
   $('pName').textContent = '· ' + r.name; $('iMsg').textContent = `${r.files.length} takes loaded`;
   renderAll(); if (!S.sel && S.files.length) select(S.files[0].rel); }
 async function select(rel) {
@@ -477,7 +488,8 @@ async function analyse() {
   $('iMsg').textContent = `Preview: ${v.fx.length} regions, ${v.keep.reduce((a, [s, e]) => a + e - s, 0).toFixed(0)} s of ${v.dur.toFixed(0)} s stay` + (S.opts.group !== false && cats.length ? ` → ${cats.length} sausage file${cats.length > 1 ? 's' : ''}: ${cats.join(', ')}` : ''); }
 async function runStop() {
   if (S.running) { await api.stop(); $('runBtn').textContent = 'Stopping …'; $('iMsg').textContent = 'Stopping after this take …'; return; }
-  readOpts(); const r = await api.start(S.src, S.dst, S.opts, S.filter, null, S.items);
+  readOpts(); const only = S.checked.size ? [...S.checked] : null;
+  const r = await api.start(S.src, S.dst, S.opts, S.filter, only, S.items);
   if (!r.ok) { toast(r.msg, true); return; }
   S.running = true; S.follow = true; $('followBtn').style.display = 'none'; renderHead(); }
 
@@ -599,7 +611,7 @@ function wire() {
   document.querySelectorAll('#fmtSeg button').forEach((b) => b.addEventListener('click', () => {
     if (b.dataset.v === 'wavpack' && !S.wavpack) toast('WavPack is missing from this build.', true);
     S.opts.fmt = b.dataset.v; renderHead(); persist(); }));
-  ['minS', 'maxS', 'gapS', 'creator'].forEach((id) => $(id).addEventListener('change', () => { readOpts(); persist(); }));
+  ['minS', 'maxS', 'gapS', 'creator', 'minLevel', 'vocal'].forEach((id) => $(id).addEventListener('change', () => { readOpts(); persist(); }));
   ['test', 'sortUcs', 'split', 'group', 'wild', 'bundle'].forEach((id) => $(id).addEventListener('change', () => { readOpts(); persist(); renderHead(); }));
   $('optBtn').addEventListener('click', (e) => { e.stopPropagation(); $('optMenu').classList.toggle('open'); });
   $('optMenu').addEventListener('click', (e) => e.stopPropagation());
@@ -628,7 +640,17 @@ function wire() {
   ['keepW', 'dropW'].forEach((id) => $(id).addEventListener('input', () => { readOpts(); renderScan(); persist(); clearTimeout(wire.h); wire.h = setTimeout(renderAll, 300); }));
   document.querySelectorAll('input[name=unk]').forEach((r) => r.addEventListener('change', () => { readOpts(); persist(); renderAll(); }));
   $('trows').addEventListener('click', (e) => { const r = e.target.closest('.trow'); if (r && r.dataset.n && !r.dataset.n.startsWith('(')) { toggleTrack(r.dataset.n); renderScan(); } });
-  $('rows').addEventListener('click', (e) => { const r = e.target.closest('.frow'); if (r) select(r.dataset.rel); });
+  $('rows').addEventListener('click', (e) => { const r = e.target.closest('.frow'); if (!r) return; const rel = r.dataset.rel;
+    const vis = [...document.querySelectorAll('.frow')].map((x) => x.dataset.rel);
+    if (e.target.classList.contains('ck') || e.metaKey || e.ctrlKey) {
+      if (S.checked.has(rel)) S.checked.delete(rel); else S.checked.add(rel); S.lastCk = rel;
+    } else if (e.shiftKey && S.lastCk && vis.includes(S.lastCk)) {
+      const a = vis.indexOf(S.lastCk), b = vis.indexOf(rel); vis.slice(Math.min(a, b), Math.max(a, b) + 1).forEach((x) => S.checked.add(x));
+    } else { select(rel); return; }
+    if (!e.target.classList.contains('ck')) renderList(); updateCheckAll(); renderHead(); });
+  $('checkAll').addEventListener('change', () => { const vis = [...document.querySelectorAll('.frow')].map((x) => x.dataset.rel);
+    if ($('checkAll').checked) vis.forEach((x) => S.checked.add(x)); else vis.forEach((x) => S.checked.delete(x));
+    renderList(); renderHead(); });
   $('rows').addEventListener('dblclick', (e) => { const r = e.target.closest('.frow'); if (r) analyse(); });
   $('tabs').addEventListener('click', (e) => { const t = e.target.dataset.t; if (!t) return; S.tab = t;
     document.querySelectorAll('#tabs span').forEach((s) => s.classList.toggle('on', s.dataset.t === t)); renderList(); });
@@ -647,7 +669,7 @@ window.addEventListener('pywebviewready', async () => {
     $('upd').onclick = (e) => { e.preventDefault(); api.open_url(u.url); }; } }).catch(() => {});
   document.documentElement.dataset.theme = S.opts.theme || 'dark';
   $('minS').value = S.opts.min_s; $('maxS').value = S.opts.max_s; $('creator').value = S.opts.creator; $('test').checked = !!S.opts.test;
-  $('gapS').value = S.opts.gap_s ?? 0.5; $('group').checked = S.opts.group !== false;
+  $('gapS').value = S.opts.gap_s ?? 0.5; $('minLevel').value = S.opts.min_level ?? -55; $('vocal').value = S.opts.vocal || 'keep'; $('group').checked = S.opts.group !== false;
   $('wild').checked = S.opts.wild !== false; $('bundle').checked = S.opts.bundle !== false;
   syncFilterInputs(); renderAll(); if (S.src) loadFiles(); poll();
 });

@@ -42,7 +42,11 @@ SILENCE_DBFS   = -60.0  # leiser als das = Raumton, ohne KI-Analyse
 WRITE_REGIONS  = True   # True = Regionen mit Laenge, False = nur Marker
 SORT_BY_CATEGORY = False  # True = Zielordner CATEGORY/SUBCATEGORY nach UCS (in der App einstellbar)
 SPLIT_TRACKS   = False  # True = jede verwendete Spur wird ein eigenes Mono-File (in der App einstellbar)
-CLAP_MODEL     = "laion/larger_clap_general"
+CLAP_MODEL     = "laion/larger_clap_general"     # sound fingerprints (similarity, fine categories)
+TAG_MODEL      = "MIT/ast-finetuned-audioset-10-10-0.4593"  # trained on AudioSet (527 sound classes)
+TAG_MIN_PROB   = 0.12   # below this the AudioSet classifier is unsure -> MISC
+MIN_LEVEL_DBFS = -55.0  # quieter than this (peak) is not written at all (in the app: Options)
+VOCAL_MODE     = "keep" # screams, cries, laughs, efforts: "keep" (own VOX files) or "cut" (like dialogue)
 
 # UCS-Dateiname: CatID_FXName_CreatorID_SourceID_UserNotes.wav
 CREATOR_ID     = "DMS"      # deine Kennung (in der App einstellbar)
@@ -90,7 +94,59 @@ LABELS = [
     ("WIND",      "WIND",           "GENERAL",   "wind blowing"),
     ("RAIN",      "RAIN",           "GENERAL",   "rain falling"),
     ("MUSCMisc",  "MUSICAL",        "MISC",      "music playing"),
+    ("VOXScrm",   "VOICES",         "SCREAM",    "a person screaming or yelling"),
+    ("VOXCry",    "VOICES",         "CRY",       "a person crying or sobbing"),
+    ("VOXLaff",   "VOICES",         "LAUGH",     "people laughing"),
+    ("VOXEfrt",   "VOICES",         "EFFORT",    "grunts, groans and gasps of effort"),
+    ("HMNCough",  "HUMAN",          "COUGH",     "someone coughing or clearing the throat"),
+    ("HMNSneez",  "HUMAN",          "SNEEZE",    "someone sneezing"),
+    ("HMNSniff",  "HUMAN",          "SNIFF",     "someone sniffing"),
 ]
+VOCAL_CATS = {"VOXScrm", "VOXCry", "VOXLaff", "VOXEfrt"}
+
+# AudioSet class (exact name, lower case) -> CatID. Classes not listed here are ignored.
+AUDIOSET_MAP = {
+    "SPEECH": ["speech", "male speech, man speaking", "female speech, woman speaking", "child speech, kid speaking",
+               "conversation", "narration, monologue", "babbling", "whispering", "speech synthesizer"],
+    "VOXScrm": ["screaming", "shout", "yell", "bellow", "children shouting", "whoop", "battle cry"],
+    "VOXCry": ["crying, sobbing", "baby cry, infant cry", "whimper", "wail, moan"],
+    "VOXLaff": ["laughter", "baby laughter", "giggle", "snicker", "belly laugh", "chuckle, chortle"],
+    "VOXEfrt": ["grunt", "groan", "gasp", "pant", "sigh"],
+    "HMNCough": ["cough", "throat clearing"],
+    "HMNSneez": ["sneeze"],
+    "HMNSniff": ["sniff"],
+    "HMNBrth": ["breathing", "wheeze"],
+    "HMNSnor": ["snoring"],
+    "FGHTImpt": ["slap, smack", "whack, thwack"],
+    "DOORMisc": ["door", "slam", "sliding door", "cupboard open or close"],
+    "DOORKnck": ["knock"],
+    "FEETHmn": ["walk, footsteps", "run", "shuffle"],
+    "CLOTHMvmt": ["rustle", "zipper (clothing)"],
+    "VEHBy": ["car passing by", "vehicle"],
+    "VEHCar": ["car", "engine", "idling", "engine starting", "accelerating, revving, vroom", "vehicle horn, car horn, honking",
+               "motor vehicle (road)", "truck", "bus", "motorcycle"],
+    "AMBTraf": ["traffic noise, roadway noise"],
+    "AMBUrbn": ["outside, urban or manmade"],
+    "AMBRoom": ["inside, small room", "inside, large room or hall", "inside, public space", "hum", "air conditioning",
+                "mechanical fan"],
+    "AMBMisc": ["outside, rural or natural"],
+    "TOOLHand": ["hammer", "sawing", "drill", "power tool", "tools", "jackhammer", "ratchet, pawl", "filing (rasp)",
+                 "sanding"],
+    "WATRSplsh": ["splash, splatter", "waves, surf", "slosh"],
+    "WATRFlow": ["water", "water tap, faucet", "sink (filling or washing)", "bathtub (filling or washing)",
+                 "toilet flush", "stream", "pour", "drip", "fill (with liquid)", "trickle, dribble", "gurgling"],
+    "FOODTware": ["dishes, pots, and pans", "cutlery, silverware", "chopping (food)", "frying (food)"],
+    "OBJMisc": ["thump, thud", "clatter", "keys jangling", "drawer open or close", "coin (dropping)", "scissors",
+                "typing", "computer keyboard"],
+    "PAPRHndl": ["crumpling, crinkling", "tearing"],
+    "GLASBrk": ["shatter", "breaking", "glass", "chink, clink"],
+    "COMTelph": ["telephone", "telephone bell ringing", "ringtone", "telephone dialing, dtmf", "dial tone"],
+    "BIRDMisc": ["bird", "bird vocalization, bird call, bird song", "chirp, tweet", "pigeon, dove", "crow", "caw"],
+    "ANMLDog": ["dog", "bark", "yip", "howl", "bow-wow", "growling", "whimper (dog)"],
+    "WIND": ["wind", "rustling leaves", "wind noise (microphone)"],
+    "RAIN": ["rain", "raindrop", "rain on surface", "thunderstorm", "thunder"],
+    "MUSCMisc": ["music", "musical instrument"],
+}
 SILENCE_CAT  = "AMBRoom"     # sehr leise Stellen
 UNKNOWN_CAT  = "MISC"        # Marker fuer unsichere Erkennung (nicht im Dateinamen)
 FALLBACK_CAT = ("AMBMisc", "AMBIENCE", "MISC")
@@ -109,6 +165,8 @@ DE_NAMES = {
     "HMNSnor": "Schnarchen/Schlafen", "FOODTware": "Geschirr", "OBJMisc": "Gegenstände",
     "PAPRHndl": "Papier", "GLASBrk": "Glasbruch", "COMTelph": "Telefon", "BIRDMisc": "Vögel",
     "ANMLDog": "Hund", "WIND": "Wind", "RAIN": "Regen", "MUSCMisc": "Musik", "MISC": "unklar",
+    "VOXScrm": "Schreie", "VOXCry": "Weinen", "VOXLaff": "Lachen", "VOXEfrt": "Stöhnen/Keuchen",
+    "HMNCough": "Husten/Räuspern", "HMNSneez": "Niesen", "HMNSniff": "Schniefen",
 }
 
 # ============================================================
@@ -367,6 +425,11 @@ def _readable(catid):
     cat, sub = UCS.get(catid, ("", ""))
     if cat == "AMBIENCE":
         return sub.title()
+    nice = {"VOXScrm": "Screams", "VOXCry": "Crying", "VOXLaff": "Laughter", "VOXEfrt": "Vocal Efforts",
+            "HMNCough": "Coughs", "HMNSneez": "Sneezes", "HMNSniff": "Sniffs", "HMNBrth": "Breaths",
+            "HMNSnor": "Snores"}
+    if catid in nice:
+        return nice[catid]
     return cat.title() if sub in ("MISC", "GENERAL", "HUMAN", "HAND", "IMPACT", "") else \
         f"{cat.title()} {sub.title()}"
 
@@ -589,7 +652,47 @@ class Analyzer:
         self.model.to(self.device)
         self.text = self.text.to(self.device)
         self.log = log
+        self.tagger = None
+        try:
+            log(f"Loading sound classes ({TAG_MODEL}) …")
+            from transformers import ASTFeatureExtractor, ASTForAudioClassification
+            self.tag_fe = ASTFeatureExtractor.from_pretrained(TAG_MODEL)
+            self.tagger = ASTForAudioClassification.from_pretrained(TAG_MODEL).eval().to(self.device)
+            names = {i: n.strip().lower() for i, n in self.tagger.config.id2label.items()}
+            self.tag_map, found = [], set()
+            for cat, classes in AUDIOSET_MAP.items():
+                for cl in classes:
+                    ids = [i for i, n in names.items() if n == cl]
+                    if ids:
+                        self.tag_map.append((cat, ids[0]))
+                        found.add(cl)
+            missing = [cl for cls in AUDIOSET_MAP.values() for cl in cls if cl not in found]
+            if missing:
+                log(f"  ({len(missing)} sound classes not in the model: {', '.join(missing[:6])} …)")
+        except Exception as ex:
+            log(f"  (sound classes unavailable, using CLAP only: {ex})")
+            self.tagger = None
         log(f"Ready (running on {'Apple GPU' if self.device == 'mps' else 'CPU'}).")
+
+    def _tag(self, waves48):
+        """AudioSet classifier -> per window (catid, prob); speech/vocal classes compete with sounds"""
+        from scipy.signal import resample_poly
+        torch = self.torch
+        x16 = [resample_poly(w, 1, 3).astype(np.float32) for w in waves48]
+        feats = self.tag_fe(x16, sampling_rate=16000, return_tensors="pt")
+        with torch.no_grad():
+            logits = self.tagger(feats["input_values"].to(self.device)).logits
+        prob = torch.sigmoid(logits).cpu().numpy()
+        out = []
+        for pr in prob:
+            best = {}
+            for cat, i in self.tag_map:
+                if pr[i] > best.get(cat, 0.0):
+                    best[cat] = float(pr[i])
+            # sounds that are clearly there beat speech that is only faintly there (and vice versa)
+            cat, p = max(best.items(), key=lambda kv: kv[1]) if best else (UNKNOWN_CAT, 0.0)
+            out.append((cat if p >= TAG_MIN_PROB else UNKNOWN_CAT, p))
+        return out
 
     @staticmethod
     def _emb(x):
@@ -623,7 +726,9 @@ class Analyzer:
         todo = []
         for i, w in enumerate(windows):
             peak = float(np.max(np.abs(w))) if w.size else 0.0
-            if peak <= 10 ** (SILENCE_DBFS / 20):
+            if peak <= 10 ** (MIN_LEVEL_DBFS / 20):
+                out[i] = ("QUIET", 1.0)         # below the level threshold: cut, never written
+            elif peak <= 10 ** (SILENCE_DBFS / 20):
                 out[i] = (SILENCE_CAT, 1.0)
             else:
                 todo.append((i, w / peak * 0.7))
@@ -647,6 +752,16 @@ class Analyzer:
             per = torch.full((len(batch), len(self.names)), -1e9, device=logits.device)
             for p, n in enumerate(self.prompt_idx):
                 per[:, n] = torch.maximum(per[:, n], logits[:, p])
+            if self.tagger is not None:
+                try:
+                    tags = self._tag([w for _, w in batch])
+                except Exception as ex:
+                    self.log(f"  (sound classes failed, using CLAP: {ex})")
+                    self.tagger, tags = None, None
+                if tags is not None:
+                    for (i, _), t in zip(batch, tags):
+                        out[i] = t
+                    continue
             prob = per.softmax(dim=-1).cpu().numpy()
             for (i, _), pr in zip(batch, prob):
                 k = int(pr.argmax())
@@ -717,16 +832,41 @@ def analyse(info, raw, an, chans):
     embs = getattr(an, "last_emb", None) or [None] * len(owned)
     info.piece_embs = [(s, e, em) for (s, e), em in zip(owned, embs)]
 
+    # The speech detector also fires on screams, cries and laughs. Check what it marked:
+    # vocal sounds are kept as their own category (VOICES), real dialogue stays cut.
+    if VOCAL_MODE == "keep" and speech:
+        v_owned, v_wins = [], []
+        for s, e in speech:
+            t = s
+            while t < e - 1e-6:
+                oe = min(e, t + HOP_S)
+                if e - oe < HOP_S * 0.5:
+                    oe = e
+                ws, we = t, min(dur, max(oe, t + WIN_S))
+                v_owned.append((t, oe))
+                v_wins.append((ws, we))
+                t = oe
+        v_audio = [mono(raw, info, int(ws * info.sr), int(we * info.sr), 48000, chans) for ws, we in v_wins]
+        v_labels = an.classify(v_audio) if v_audio else []
+        v_embs = getattr(an, "last_emb", None) or [None] * len(v_owned)
+        for (s, e), (l, p), em in zip(v_owned, v_labels, v_embs):
+            if l in VOCAL_CATS:
+                pieces.append((s, e, l, p))
+                info.piece_embs.append((s, e, em))
+        pieces.sort(key=lambda x: x[0])
+
     runs = []
+    cut = set(CUT_LABELS) | {"QUIET"} | (VOCAL_CATS if VOCAL_MODE == "cut" else set())
     for s, e, l, p in pieces:
-        if l in CUT_LABELS:
+        if l in cut:
             continue
         if runs and abs(runs[-1]["end"] - s) < 1e-6:
             runs[-1]["end"] = e
             runs[-1]["pieces"].append((s, e, l, p))
         else:
             runs.append({"start": s, "end": e, "pieces": [(s, e, l, p)]})
-    runs = [r for r in runs if r["end"] - r["start"] >= MIN_SEGMENT_S]
+    runs = [r for r in runs if r["end"] - r["start"] >= MIN_SEGMENT_S
+            or all(l in VOCAL_CATS for _, _, l, _ in r["pieces"])]   # a short scream is still a scream
 
     for r in runs:
         ev = []
@@ -891,7 +1031,7 @@ def build_parts(runs, group=None, gap=None):
     out = []
     for pt in parts:
         length = sum(sg["end"] - sg["start"] for sg in pt["segs"]) + gap * (len(pt["segs"]) - 1)
-        if length >= MIN_FILE_S:
+        if length >= MIN_FILE_S or (pt["cat"] in VOCAL_CATS and length >= 0.5):   # keep short screams
             out.append(pt)
     return out
 
@@ -920,7 +1060,7 @@ def process(path, dst, rel_dir, an, dry, log, rel, creator, taken, view=None):
     if view:
         view(file_view(path, info, meta, raw, parts, rel))
     if not parts:
-        return "dialog", [], "dialogue only or too short"
+        return "dialog", [], "dialogue only, too quiet or too short"
 
     sr = info.sr
     written = []
@@ -1425,10 +1565,15 @@ def run(src, dst, creator=CREATOR_ID, limit=0, dry=False, log=print,
         progress=lambda i, n: None, stop=lambda: False, analyzer=None,
         min_s=None, max_s=None, fmt=None, sort_ucs=None, split=None,
         keep_words=None, drop_words=None, unknown=None, on_event=None, only=None,
-        group_cat=None, gap_s=None, bundle=None, wild_cont=None, files=None):
+        group_cat=None, gap_s=None, bundle=None, wild_cont=None, files=None,
+        min_level=None, vocal=None, redo=False):
     global MIN_FILE_S, MAX_FILE_S, OUTPUT_FORMAT, SORT_BY_CATEGORY, SPLIT_TRACKS
     global KEEP_TRACKS, IGNORE_TRACKS, UNKNOWN_TRACKS, GROUP_BY_CAT, GAP_S, BUNDLE_AFTER_RUN
-    global WILD_CONTINUOUS
+    global WILD_CONTINUOUS, MIN_LEVEL_DBFS, VOCAL_MODE
+    if min_level is not None:
+        MIN_LEVEL_DBFS = float(min_level)
+    if vocal in ("keep", "cut"):
+        VOCAL_MODE = vocal
     if bundle is not None:
         BUNDLE_AFTER_RUN = bool(bundle)
     if wild_cont is not None:
@@ -1491,7 +1636,7 @@ def run(src, dst, creator=CREATOR_ID, limit=0, dry=False, log=print,
                 break
             progress(i - 1, len(files))
             rel = os.path.relpath(path, src)
-            if rel in done and not dry:
+            if rel in done and not dry and not redo:
                 log(f"[{i}/{len(files)}] {rel}: already done")
                 ev("skip", {"i": i, "n": len(files), "rel": rel})
                 continue
