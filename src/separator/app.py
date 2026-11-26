@@ -83,6 +83,7 @@ class Api:
         return {
             "version": VERSION,
             "src": s.get("src", ""), "dst": s.get("dst", ""),
+            "items": [p for p in s.get("items", []) if os.path.isfile(p)],
             "opts": {
                 "creator": s.get("creator", fx_core.CREATOR_ID), "fmt": s.get("fmt", "wav"),
                 "min_s": s.get("min_s", fx_core.MIN_FILE_S), "max_s": s.get("max_s", fx_core.MAX_FILE_S),
@@ -103,9 +104,9 @@ class Api:
             "sort_ucs": p.get("sort_ucs", False), "split": p.get("split", False),
         }
 
-    def save(self, src, dst, opts, flt):
+    def save(self, src, dst, opts, flt, items=None):
         s = self._settings
-        s.update({"src": src, "dst": dst})
+        s.update({"src": src, "dst": dst, "items": list(items or [])})
         for k in ("creator", "fmt", "min_s", "max_s", "test", "theme", "gap_s", "group", "bundle", "wild"):
             if k in opts:
                 s[k] = opts[k]
@@ -125,11 +126,18 @@ class Api:
             return ""
         return r[0] if isinstance(r, (list, tuple)) else r
 
-    def list_files(self, src, dst):
-        if not src or not os.path.isdir(src):
-            return {"ok": False, "msg": "Source folder not found"}
-        src = os.path.abspath(src)
-        files = fx_core.find_files(src, dst or os.path.join(src, "\0"))
+    def list_files(self, src, dst, items=None):
+        """items: explicit absolute file paths (from drag and drop); None = the whole source folder"""
+        if items:
+            files = [p for p in items if os.path.isfile(p)]
+            if not files:
+                return {"ok": False, "msg": "The dropped files are no longer there."}
+            src = fx_core.common_root(files)
+        else:
+            if not src or not os.path.isdir(src):
+                return {"ok": False, "msg": "Source folder not found"}
+            src = os.path.abspath(src)
+            files = fx_core.find_files(src, dst or os.path.join(src, "\0"))
         done = fx_core.read_done(dst) if dst and os.path.isdir(dst) else {}
         out, sr, bits, total = [], Counter(), Counter(), 0.0
         for p in files:
@@ -145,13 +153,31 @@ class Api:
                 bits[d["bits"]] += 1
             self._durs[d["rel"]] = d.get("dur", 0)
             out.append(d)
-        return {"ok": True, "files": out, "total_s": total,
+        name = os.path.basename(src.rstrip("/")) or src
+        if items:
+            name = f"{len(files)} dropped file{'s' if len(files) != 1 else ''}"
+        return {"ok": True, "files": out, "total_s": total, "src": src,
                 "sr": sr.most_common(1)[0][0] if sr else 0, "bits": bits.most_common(1)[0][0] if bits else 0,
-                "name": os.path.basename(src.rstrip("/")) or src}
+                "name": name}
 
-    def scan_tracks(self, src, flt):
+    def expand_drop(self, paths, dst=None):
+        """Dropped files/folders -> WAV/BWF files; also counts what was skipped"""
+        files = fx_core.expand_paths(paths or [], dst)
+        return {"files": files, "skipped": sum(1 for p in paths or [] if os.path.isfile(p)
+                                               and not fx_core.is_audio(os.path.basename(p)))}
+
+    def _on_drop(self, e):
+        try:
+            fl = (e.get("dataTransfer") or {}).get("files") or []
+            paths = [f.get("pywebviewFullPath") for f in fl if f.get("pywebviewFullPath")]
+        except Exception:
+            paths = []
+        if self._window is not None:
+            self._window.evaluate_js("window.onDropPaths && window.onDropPaths(%s)" % json.dumps(paths))
+
+    def scan_tracks(self, src, flt, items=None):
         self._apply_filter(flt)
-        n, counts = fx_core.scan_tracks(src)
+        n, counts = fx_core.scan_tracks(src, files=items or None)
         rows = []
         for name, c in counts:
             cls = "keep" if name.startswith("(") else fx_core.classify_track(name)
@@ -212,21 +238,24 @@ class Api:
         return True
 
     # ---------- Lauf ----------
-    def start(self, src, dst, opts, flt, only=None):
+    def start(self, src, dst, opts, flt, only=None, items=None):
         if self._running:
             return {"ok": False, "msg": "Already running"}
+        if items:
+            items = [p for p in items if os.path.isfile(p)]
+            src = fx_core.common_root(items) if items else src
         if not os.path.isdir(src or ""):
-            return {"ok": False, "msg": "Please choose a source folder."}
+            return {"ok": False, "msg": "Please choose a source folder or drop audio files."}
         if not dst:
             return {"ok": False, "msg": "Please choose a destination folder."}
         if os.path.abspath(dst) == os.path.abspath(src):
             return {"ok": False, "msg": "The destination can't be the source folder."}
         if opts.get("fmt") == "wavpack" and not fx_core.wavpack_bin():
             return {"ok": False, "msg": "WavPack is missing from this build – please choose WAV."}
-        self.save(src, dst, opts, flt)
+        self.save(src, dst, opts, flt, items)
         self._running, self._stop_flag = True, False
         self._t_start, self._n_done, self._secs_done = time.time(), 0, 0.0
-        threading.Thread(target=self._work, args=(src, dst, opts, flt, only), daemon=True).start()
+        threading.Thread(target=self._work, args=(src, dst, opts, flt, only, items), daemon=True).start()
         return {"ok": True}
 
     def _on_event(self, kind, data):
@@ -241,7 +270,7 @@ class Api:
                 self._secs_done += self._durs.get(data["rel"], 0)
         self._push(kind, data)
 
-    def _work(self, src, dst, opts, flt, only):
+    def _work(self, src, dst, opts, flt, only, items=None):
         try:
             if self._analyzer is None:
                 self._push("log", "Loading AI models … (first time only, takes a moment)")
@@ -258,7 +287,8 @@ class Api:
                         drop_words=words(flt.get("drop", "")), unknown=flt.get("unknown"),
                         on_event=self._on_event, only=only,
                         group_cat=opts.get("group", True), gap_s=float(opts.get("gap_s", fx_core.GAP_S)),
-                        bundle=opts.get("bundle", True), wild_cont=opts.get("wild", True))
+                        bundle=opts.get("bundle", True), wild_cont=opts.get("wild", True),
+                        files=items or None)
         except Exception as ex:
             self._push("log", f"ERROR: {ex}")
         self._running = False
@@ -321,6 +351,14 @@ def main():
         width=s.get("win_w", 1280), height=s.get("win_h", 820), min_size=(1040, 680),
         background_color="#2B2D31")
     api._window = win
+
+    def on_loaded():
+        try:
+            from webview.dom import DOMEventHandler
+            win.dom.document.events.drop += DOMEventHandler(api._on_drop, True, True)
+        except Exception as ex:          # older pywebview: drop shows a hint instead
+            print("drag and drop unavailable:", ex)
+    win.events.loaded += on_loaded
     webview.start()
 
 

@@ -150,6 +150,12 @@ button.icon{width:30px;padding:0}
 .overlay h2{margin:0 0 8px;font-size:17px}
 .overlay ul{padding-left:18px;margin:6px 0}
 .toast{position:fixed;left:50%;bottom:64px;transform:translateX(-50%);background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:9px 14px;z-index:50;display:none;box-shadow:0 8px 24px rgba(0,0,0,.3)}
+.dropov{position:fixed;inset:10px;z-index:45;border:2px dashed var(--blue);border-radius:12px;background:rgba(20,24,30,.72);display:none;align-items:center;justify-content:center;pointer-events:none}
+[data-theme="light"] .dropov{background:rgba(255,255,255,.82)}
+.dropov.open{display:flex}
+.dropov div{display:flex;flex-direction:column;align-items:center;gap:8px;color:var(--blue)}
+.dropov b{font-size:17px;color:var(--text)}
+.dropov span{font-size:12px;color:var(--dim)}
 .toast.err{border-color:var(--err);color:var(--err)}
 </style>
 </head>
@@ -206,7 +212,7 @@ button.icon{width:30px;padding:0}
         <span class="grow"></span>
         <span class="tabs" id="tabs"><span data-t="all" class="on">All</span><span data-t="open">Open</span><span data-t="done">Done</span><span data-t="err">Errors</span></span>
       </div>
-      <div class="rows" id="rows"><div class="empty-msg">Choose the folder with your production sound at the top left. Separator reads only the file headers and lists every take here.</div></div>
+      <div class="rows" id="rows"><div class="empty-msg">Choose the folder with your production sound at the top left, or drag audio files or folders into this window. Separator reads only the file headers and lists every take here.</div></div>
     </div>
 
     <div class="box view">
@@ -258,7 +264,7 @@ button.icon{width:30px;padding:0}
   <h2>Separator</h2>
   Removes dialogue from production sound and writes the remaining sounds as UCS-named FX files with regions.
   <ul>
-    <li><b>Source / Destination:</b> the chips at the top left. Originals are never changed.</li>
+    <li><b>Source / Destination:</b> the chips at the top left. Or drag audio files and folders into the window; more drops add to the list. Originals are never changed.</li>
     <li><b>Track Filter:</b> per project. Scan lists every track name, a click switches Use/Drop.</li>
     <li><b>Analyze preview:</b> shows what gets cut and what stays for the selected take, without writing anything. Double-click a take does the same.</li>
     <li><b>Length:</b> shorter results are dropped, longer ones are split at sound boundaries (0 = unlimited). <b>Gap:</b> silence between sounds in a sausage file.</li>
@@ -269,10 +275,12 @@ button.icon{width:30px;padding:0}
   <div style="text-align:right;margin-top:12px"><button id="helpClose">Close</button></div>
 </div></div>
 <div class="toast" id="toast"></div>
+<div class="dropov" id="dropOv"><div><svg width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12"/><path d="M7 10l5 5 5-5"/><path d="M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"/></svg>
+<b>Drop audio files or folders</b><span>WAV and BWF, folders are searched with all subfolders</span></div></div>
 
 <script>
 const $ = (id) => document.getElementById(id);
-const S = { src: '', dst: '', opts: {}, filter: {}, files: [], byRel: {}, sel: null, view: null, tab: 'all',
+const S = { items: null, root: '', src: '', dst: '', opts: {}, filter: {}, files: [], byRel: {}, sel: null, view: null, tab: 'all',
   running: false, seq: 0, viewSeq: 0, follow: true, outputs: {}, wavpack: false, srcName: '' };
 let api = null;
 
@@ -313,7 +321,7 @@ function readOpts() { S.opts.min_s = parseFloat($('minS').value) || 0; S.opts.ma
   S.filter.sort_ucs = $('sortUcs').checked; S.filter.split = $('split').checked;
   S.filter.keep = $('keepW').value; S.filter.drop = $('dropW').value;
   const u = document.querySelector('input[name=unk]:checked'); if (u) S.filter.unknown = u.value; }
-function persist() { clearTimeout(persist.h); persist.h = setTimeout(() => api && api.save(S.src, S.dst, S.opts, S.src ? S.filter : null), 400); }
+function persist() { clearTimeout(persist.h); persist.h = setTimeout(() => api && api.save(S.src, S.dst, S.opts, S.src ? S.filter : null, S.items), 400); }
 function syncFilterInputs() { $('keepW').value = S.filter.keep || ''; $('dropW').value = S.filter.drop || '';
   document.querySelectorAll('input[name=unk]').forEach((r) => r.checked = r.value === (S.filter.unknown || 'fallback'));
   $('sortUcs').checked = !!S.filter.sort_ucs; $('split').checked = !!S.filter.split; }
@@ -347,7 +355,7 @@ function fileSub(f) { const p = [];
   return p.join(' · '); }
 function renderList() {
   const rows = $('rows');
-  if (!S.files.length) { rows.innerHTML = `<div class="empty-msg">${S.src ? 'No WAV files in this folder.' : 'Choose the folder with your production sound at the top left. Separator reads only the file headers and lists every take here.'}</div>`;
+  if (!S.files.length) { rows.innerHTML = `<div class="empty-msg">${S.src ? 'No WAV files in this folder.' : 'Choose the folder with your production sound at the top left, or drag audio files or folders into this window. Separator reads only the file headers and lists every take here.'}</div>`;
     $('listInfo').textContent = S.src ? '0 Takes' : 'No source'; return; }
   const flt = { all: () => true, open: (f) => f.status === 'open' || f.status === 'running',
     done: (f) => ['ok', 'dialog', 'notrack'].includes(f.status), err: (f) => f.status === 'error' };
@@ -428,13 +436,14 @@ function renderAll() { renderHead(); renderList(); renderView(); }
 
 /* ---------- actions ---------- */
 async function setSource(path) {
-  if (!path) return; S.src = path; S.sel = null; S.view = null; S.outputs = {};
+  if (!path) return; S.items = null; S.src = path; S.sel = null; S.view = null; S.outputs = {};
   S.filter = await api.project_filter(path); syncFilterInputs();
   $('iMsg').textContent = 'Reading headers …'; await loadFiles(); persist(); }
 async function loadFiles() {
-  if (!S.src) { S.files = []; S.byRel = {}; renderAll(); return; }
-  const r = await api.list_files(S.src, S.dst);
+  if (!S.src && !S.items) { S.files = []; S.byRel = {}; renderAll(); return; }
+  const r = await api.list_files(S.src, S.dst, S.items);
   if (!r.ok) { toast(r.msg, true); return; }
+  S.root = r.src; if (S.items) S.src = r.src;
   S.files = r.files; S.byRel = {}; S.files.forEach((f) => S.byRel[f.rel] = f); S.sr = r.sr; S.bits = r.bits; S.srcName = r.name;
   $('pName').textContent = '· ' + r.name; $('iMsg').textContent = `${r.files.length} takes loaded`;
   renderAll(); if (!S.sel && S.files.length) select(S.files[0].rel); }
@@ -451,7 +460,7 @@ async function analyse() {
   $('iMsg').textContent = `Preview: ${v.fx.length} regions, ${v.keep.reduce((a, [s, e]) => a + e - s, 0).toFixed(0)} s of ${v.dur.toFixed(0)} s stay` + (S.opts.group !== false && cats.length ? ` → ${cats.length} sausage file${cats.length > 1 ? 's' : ''}: ${cats.join(', ')}` : ''); }
 async function runStop() {
   if (S.running) { await api.stop(); $('runBtn').textContent = 'Stopping …'; $('iMsg').textContent = 'Stopping after this take …'; return; }
-  readOpts(); const r = await api.start(S.src, S.dst, S.opts, S.filter, null);
+  readOpts(); const r = await api.start(S.src, S.dst, S.opts, S.filter, null, S.items);
   if (!r.ok) { toast(r.msg, true); return; }
   S.running = true; S.follow = true; $('followBtn').style.display = 'none'; renderHead(); }
 
@@ -482,10 +491,34 @@ async function poll() {
   setTimeout(poll, S.running ? 400 : 1200);
 }
 
+/* ---------- drag and drop ---------- */
+function absPaths() { return S.files.map((f) => (S.root.endsWith('/') ? S.root : S.root + '/') + f.rel); }
+window.onDropPaths = async (paths) => {
+  $('dropOv').classList.remove('open');
+  if (S.running) { toast('Separator is running. Drop new files after this run.', true); return; }
+  if (!paths || !paths.length) { toast('Drop audio files or folders from the Finder.', true); return; }
+  $('iMsg').textContent = 'Reading dropped files …';
+  const r = await api.expand_drop(paths, S.dst);
+  if (!r.files.length) { toast('No WAV or BWF files in what you dropped.', true); $('iMsg').textContent = 'Ready'; return; }
+  const before = S.items ? S.items.slice() : (S.src ? absPaths() : []);
+  const all = [...new Set(before.concat(r.files))];
+  const added = all.length - before.length;
+  S.items = all; S.sel = null; S.view = null;
+  await loadFiles();
+  S.filter = await api.project_filter(S.src); syncFilterInputs(); persist();
+  toast(`${added} file${added === 1 ? '' : 's'} added` + (added < r.files.length ? `, ${r.files.length - added} already in the list` : '') + (r.skipped ? `, ${r.skipped} skipped (not WAV/BWF)` : '') + '.');
+};
+let dragDepth = 0;
+document.addEventListener('dragenter', (e) => { e.preventDefault(); dragDepth++; $('dropOv').classList.add('open'); });
+document.addEventListener('dragover', (e) => { e.preventDefault(); });
+document.addEventListener('dragleave', () => { if (--dragDepth <= 0) { dragDepth = 0; $('dropOv').classList.remove('open'); } });
+document.addEventListener('drop', (e) => { e.preventDefault(); dragDepth = 0;
+  setTimeout(() => $('dropOv').classList.remove('open'), 300); });
+
 /* ---------- track filter panel ---------- */
 async function scan() {
   if (!S.src) { toast('Please choose a source folder first.', true); return; }
-  readOpts(); $('scanInfo').textContent = 'scanning …'; const r = await api.scan_tracks(S.src, S.filter); S.scanRows = r.rows;
+  readOpts(); $('scanInfo').textContent = 'scanning …'; const r = await api.scan_tracks(S.src, S.filter, S.items); S.scanRows = r.rows;
   $('scanInfo').textContent = `${r.files} files · ${r.rows.length} track names`; renderScan(); }
 function renderScan() {
   const rows = S.scanRows || []; if (!rows.length) return;
@@ -496,7 +529,7 @@ function renderScan() {
 
 /* ---------- wiring ---------- */
 function wire() {
-  $('srcChip').addEventListener('click', async (e) => { if (e.target.id === 'srcX') { S.src = ''; S.files = []; S.view = null; S.sel = null; renderAll(); persist(); return; }
+  $('srcChip').addEventListener('click', async (e) => { if (e.target.id === 'srcX') { S.src = ''; S.items = null; S.files = []; S.view = null; S.sel = null; renderAll(); persist(); return; }
     const p = await api.pick_folder('Source'); if (p) setSource(p); });
   $('dstChip').addEventListener('click', async () => { const p = await api.pick_folder('Destination'); if (p) { S.dst = p; persist(); loadFiles(); } });
   document.querySelectorAll('#fmtSeg button').forEach((b) => b.addEventListener('click', () => {
@@ -535,7 +568,7 @@ function wire() {
 window.addEventListener('pywebviewready', async () => {
   api = window.pywebview.api; wire();
   const i = await api.init();
-  S.src = i.src; S.dst = i.dst; S.opts = i.opts; S.filter = i.filter; S.wavpack = i.wavpack;
+  S.src = i.src; S.items = i.items && i.items.length ? i.items : null; S.dst = i.dst; S.opts = i.opts; S.filter = i.filter; S.wavpack = i.wavpack;
   $('ver').textContent = 'V ' + i.version; $('verFoot').textContent = 'V ' + i.version + ' - developed with AI assistance';
   $('siteLink').addEventListener('click', (e) => { e.preventDefault(); api.open_url('https://dmajorsound.com'); });
   api.check_update().then((u) => { if (u && u.latest) { $('updTxt').textContent = u.latest + ' is out'; $('upd').style.display = 'flex';

@@ -331,9 +331,10 @@ def select_channels(tracks):
     return keep if keep else unknown
 
 
-def scan_tracks(src, limit=0):
+def scan_tracks(src, limit=0, files=None):
     """Liest nur die Header: welche Spurnamen kommen wie oft vor"""
-    counts, files = {}, find_files(src, os.path.join(src, "\0"))
+    counts = {}
+    files = files if files is not None else find_files(src, os.path.join(src, "\0"))
     for p in files[:limit or None]:
         try:
             info = read_wav_info(p)
@@ -1380,6 +1381,35 @@ def read_done(dst):
     return out
 
 
+def is_audio(name):
+    return name.lower().endswith((".wav", ".bwf")) and not name.startswith("._") and not name.endswith(".part")
+
+
+def expand_paths(paths, dst=None):
+    """Dropped files and folders -> sorted list of WAV/BWF files (folders searched recursively)"""
+    out, dst = set(), os.path.abspath(dst) if dst else None
+    for p in paths:
+        p = os.path.abspath(p)
+        if os.path.isdir(p):
+            for root, dirs, names in os.walk(p):
+                if dst and os.path.abspath(root).startswith(dst):
+                    dirs[:] = []
+                    continue
+                dirs[:] = [d for d in dirs if not d.startswith(".")]
+                out.update(os.path.join(root, n) for n in names if is_audio(n))
+        elif os.path.isfile(p) and is_audio(os.path.basename(p)):
+            out.add(p)
+    return sorted(out)
+
+
+def common_root(files):
+    """Folder above all given files (the file's own folder for a single file)"""
+    if not files:
+        return ""
+    root = os.path.commonpath([os.path.dirname(f) for f in files])
+    return root
+
+
 def find_files(src, dst):
     files = []
     for root, _, names in os.walk(src):
@@ -1395,7 +1425,7 @@ def run(src, dst, creator=CREATOR_ID, limit=0, dry=False, log=print,
         progress=lambda i, n: None, stop=lambda: False, analyzer=None,
         min_s=None, max_s=None, fmt=None, sort_ucs=None, split=None,
         keep_words=None, drop_words=None, unknown=None, on_event=None, only=None,
-        group_cat=None, gap_s=None, bundle=None, wild_cont=None):
+        group_cat=None, gap_s=None, bundle=None, wild_cont=None, files=None):
     global MIN_FILE_S, MAX_FILE_S, OUTPUT_FORMAT, SORT_BY_CATEGORY, SPLIT_TRACKS
     global KEEP_TRACKS, IGNORE_TRACKS, UNKNOWN_TRACKS, GROUP_BY_CAT, GAP_S, BUNDLE_AFTER_RUN
     global WILD_CONTINUOUS
@@ -1430,7 +1460,7 @@ def run(src, dst, creator=CREATOR_ID, limit=0, dry=False, log=print,
         MAX_FILE_S = MIN_FILE_S
     src, dst = os.path.abspath(src), os.path.abspath(dst)
     ev = on_event or (lambda kind, data: None)
-    files = find_files(src, dst)
+    files = sorted(os.path.abspath(f) for f in files) if files is not None else find_files(src, dst)
     if only:
         wanted = set(only)
         files = [f for f in files if os.path.relpath(f, src) in wanted]
