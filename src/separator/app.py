@@ -13,6 +13,7 @@ from collections import Counter
 HERE = getattr(sys, "_MEIPASS", os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, HERE)
 import fx_core  # noqa: E402
+import player  # noqa: E402
 
 VERSION = "1.2"
 REPO = "dmajorsound/Separator"
@@ -54,6 +55,8 @@ class Api:
         self._n_done = 0
         self._secs_done = 0.0
         self._durs = {}
+        self._player = player.Player()
+        self._player.device_name = self._settings.get("audio_device", "")   # "" = system default
 
     # ---------- intern ----------
     def _push(self, kind, data):
@@ -88,6 +91,7 @@ class Api:
                 "creator": s.get("creator", fx_core.CREATOR_ID), "fmt": s.get("fmt", "wav"),
                 "min_s": s.get("min_s", fx_core.MIN_FILE_S), "max_s": s.get("max_s", fx_core.MAX_FILE_S),
                 "test": s.get("test", True), "theme": s.get("theme", "dark"),
+                "audio_device": s.get("audio_device", ""),
                 "gap_s": s.get("gap_s", fx_core.GAP_S), "group": s.get("group", fx_core.GROUP_BY_CAT),
                 "bundle": s.get("bundle", fx_core.BUNDLE_AFTER_RUN), "wild": s.get("wild", fx_core.WILD_CONTINUOUS),
             },
@@ -318,6 +322,39 @@ class Api:
             self._push("stopped", {"stopped": False, "bundle": True})
         threading.Thread(target=work, daemon=True).start()
         return {"ok": True}
+
+    # ---------- preview playback ----------
+    def audio_devices(self):
+        try:
+            return {"ok": True, "devices": player.list_devices(), "current": self._player.device_name}
+        except Exception as ex:
+            return {"ok": False, "msg": str(ex), "devices": [], "current": ""}
+
+    def set_audio_device(self, name):
+        """"" = follow the system default output"""
+        self._player.stop()
+        self._player.device_name = name or ""
+        self._settings["audio_device"] = self._player.device_name
+        save_settings(self._settings)
+        return True
+
+    def play(self, src, rel, flt, pos=0.0, segments=None, gap_s=0.0):
+        self._apply_filter(flt)
+        try:
+            path = os.path.join(src, rel)
+            info = fx_core.read_wav_info(path)
+            chans = fx_core.select_channels(fx_core.read_meta(info, path)["tracks"])
+            return {"ok": True, **self._player.play(path, rel, chans, float(pos or 0),
+                                                    segments or None, float(gap_s or 0))}
+        except Exception as ex:
+            self._player.stop()
+            return {"ok": False, "msg": str(ex)}
+
+    def stop_play(self):
+        return self._player.stop()
+
+    def play_state(self):
+        return self._player.state()
 
     def stop(self):
         self._stop_flag = True

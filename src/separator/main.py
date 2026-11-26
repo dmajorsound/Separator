@@ -15,6 +15,8 @@ def selftest():
     import torch  # noqa: F401
     import transformers  # noqa: F401
     import webview  # noqa: F401
+    import sounddevice as sd
+    print("SELFTEST PortAudio:", sd.get_portaudio_version()[1])
     from silero_vad import load_silero_vad, get_speech_timestamps
 
     vad = load_silero_vad()

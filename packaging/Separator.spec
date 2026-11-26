@@ -10,6 +10,7 @@ VERSION = open(os.path.join(ROOT, "VERSION")).read().strip()
 datas = [(os.path.join(SRC, "web"), "web")]
 datas += collect_data_files("silero_vad")
 datas += collect_data_files("webview")
+datas += collect_data_files("_sounddevice_data")   # bundled PortAudio for preview playback
 for pkg in ("transformers", "tokenizers", "huggingface_hub", "safetensors", "torch", "tqdm",
             "regex", "requests", "packaging", "filelock", "numpy", "pyyaml"):
     try:
@@ -23,7 +24,7 @@ if wv:
     binaries.append((wv, "bin"))   # WavPack-Programm mitliefern; Abhaengigkeiten sammelt PyInstaller
 
 hiddenimports = (collect_submodules("transformers.models.clap") + collect_submodules("silero_vad")
-                 + ["webview.platforms.cocoa", "scipy.signal"])
+                 + ["webview.platforms.cocoa", "scipy.signal", "sounddevice", "_sounddevice_data"])
 
 a = Analysis(
     [os.path.join(SRC, "main.py")],

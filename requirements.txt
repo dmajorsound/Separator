@@ -5,3 +5,4 @@ torchaudio
 silero-vad
 transformers
 pywebview
+sounddevice
