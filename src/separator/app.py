@@ -189,8 +189,10 @@ class Api:
         return True
 
     def check_update(self):
-        """Neueste Version auf GitHub pruefen; still, wenn offline oder privat"""
+        """Check GitHub for a newer release; silent when offline (SEPARATOR_UPD=x.y shows the notice for testing)"""
         import urllib.request
+        if os.environ.get("SEPARATOR_UPD"):
+            return {"latest": os.environ["SEPARATOR_UPD"], "url": f"https://github.com/{REPO}/releases/latest"}
         try:
             req = urllib.request.Request(f"https://api.github.com/repos/{REPO}/releases/latest",
                                          headers={"Accept": "application/vnd.github+json", "User-Agent": "Separator"})
