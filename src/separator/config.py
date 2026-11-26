@@ -58,17 +58,24 @@ WRITE_REGIONS = True        # markers with a length (regions); False = point mar
 # Track filter (app, per source folder). Words match the start of a track name, case-insensitive;
 # "use" beats "drop", so "Boom ISO" is used. Files without track names use every track.
 KEEP_TRACKS = ["boom", "bm", "atmo", "atmos", "amb", "ambience", "wild", "wt", "plant", "pm", "plt"]
-IGNORE_TRACKS = ["lav", "iso", "mix", "mx", "radio", "rf", "tx", "wl"]
+IGNORE_TRACKS = ["lav", "iso", "mix", "mx", "radio", "rf", "tx", "wl", "funk", "sender"]
 UNKNOWN_TRACKS = "fallback"  # tracks matching neither list: "fallback" (only if nothing else), "keep", "drop"
 
 # ---------------------------------------------------------------------------
 # Analysis
 # ---------------------------------------------------------------------------
 VAD_THRESHOLD = 0.40        # speech detection: lower = more sensitive (cuts more)
+VAD_MIN_SPEECH_MS = 200     # shorter speech blips are ignored (a single "ja" is ~200 ms)
+VAD_MIN_SILENCE_MS = 250    # pauses shorter than this inside a sentence do not open a gap
+USE_SIBLINGS = True         # also detect speech on the other mono files of the same take (lavs)
+SNAP_S = 0.15               # cut edges move up to this far to the quietest point nearby (0 = off)
 WIN_S = 4.0                 # analysis window of the sound classifier (s)
 HOP_S = 2.0                 # analysis step = marker resolution (s)
 TAG_MODEL = "MIT/ast-finetuned-audioset-10-10-0.4593"   # sound classes, trained on AudioSet (527 classes)
 TAG_MIN_PROB = 0.12         # below this the classifier is unsure -> MISC
+AMBIENCE_WEIGHT = 0.6       # room/outside/hum classes count this much against real events
+DIAGNOSTICS = False         # (app) write one CSV per take with the top-5 classes of every window
+DIAG_DIR = ""               # set by the engine: <destination>/_diagnostics
 CLAP_MODEL = "laion/larger_clap_general"                # sound fingerprints (similarity, fine categories)
 MIN_PROB = 0.30             # CLAP fallback: below this confidence -> MISC
 SILENCE_DBFS = -60.0        # quieter windows are room tone without asking the models

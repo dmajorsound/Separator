@@ -48,7 +48,7 @@ def preview(path, an=None, rel=""):
     parts = None
     chans = select_channels(meta["tracks"])
     if an is not None and chans:
-        runs, _ = analyse(info, raw, an, chans)
+        runs, _ = analyse(info, raw, an, chans, path)
         parts = feature().preview_parts(runs, meta)
     return file_view(path, info, meta, raw, parts, rel)
 
@@ -110,6 +110,7 @@ def run(src, dst, creator=cfg.CREATOR_ID, limit=0, dry=False, log=print,
     feat = feature()                      # the active feature module (FX Library or DX Delete)
     an = analyzer or Analyzer(log)
     os.makedirs(dst, exist_ok=True)
+    cfg.DIAG_DIR = os.path.join(dst, "_diagnostics") if cfg.DIAGNOSTICS else ""
     done_path = os.path.join(dst, DONE_NAME[cfg.MODE])
     done = set(read_done(dst))
     log_path = os.path.join(dst, "fx_marker_list.csv")

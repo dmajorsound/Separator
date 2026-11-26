@@ -34,7 +34,7 @@ def process(path, dst, rel_dir, an, dry, log, rel, view=None, **_):
                     shape=(info.n_frames * info.block,))
     if not chans:
         chans = list(range(info.channels))
-    runs, dur = analyse(info, raw, an, chans)
+    runs, dur = analyse(info, raw, an, chans, path)
     segs = [{"start": r["start"], "end": r["end"], "events": r["events"], "cut": True} for r in runs]
     if view:
         view(file_view(path, info, meta, raw, [{"cat": "*", "segs": segs}] if segs else [], rel))

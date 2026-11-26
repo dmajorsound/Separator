@@ -16,6 +16,7 @@ import numpy as np
 import config as cfg
 from ucs import DE_NAMES, DE_SUB, SUBLABELS, UCS, VOCAL_CATS, _clean, _readable, description, family, ranking, ucs_name
 from wavio import _chunk, decode, encode, frames_bytes, marker_chunks, read_wav_info, tc, to_wavpack, wavpack_bin, write_bwf
+import siblings
 from metadata import list_info, new_bext, new_ixml, read_meta, select_channels
 from analysis import analyse
 from views import file_view
@@ -111,17 +112,20 @@ def process(path, dst, rel_dir, an, dry, log, rel, creator, taken, view=None):
     info = read_wav_info(path)
     meta = read_meta(info, path)
     chans = select_channels(meta["tracks"])
+    why = "no matching track"
+    if chans and siblings.is_lav_by_context(meta, siblings.find(path)):
+        chans, why = [], "lav (the same take has a boom/atmo file)"   # e.g. a track named "Biggi"
     if not chans:
         if view:
             raw0 = np.memmap(path, dtype=np.uint8, mode="r", offset=info.data_off,
                              shape=(info.n_frames * info.block,))
             view(file_view(path, info, meta, raw0, [], rel))
-        return "notrack", [], "no matching track"
+        return "notrack", [], why
     kept_names = [meta["tracks"][i] or f"Track {i + 1}" for i in chans] if any(meta["tracks"]) else []
 
     raw = np.memmap(path, dtype=np.uint8, mode="r", offset=info.data_off,
                     shape=(info.n_frames * info.block,))
-    runs, dur = analyse(info, raw, an, chans)
+    runs, dur = analyse(info, raw, an, chans, path)
     grp_mode, gap_s = part_mode(meta)
     parts = build_parts(runs, grp_mode, gap_s)
     if view:

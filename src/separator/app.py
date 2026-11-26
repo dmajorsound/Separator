@@ -102,6 +102,7 @@ class Api:
                 "min_level": s.get("min_level", config.MIN_LEVEL_DBFS), "vocal": s.get("vocal", config.VOCAL_MODE),
                 "gap_s": s.get("gap_s", config.GAP_S), "group": s.get("group", config.GROUP_BY_CAT),
                 "bundle": s.get("bundle", config.BUNDLE_AFTER_RUN), "wild": s.get("wild", config.WILD_CONTINUOUS),
+                "diag": s.get("diag", config.DIAGNOSTICS), "siblings": s.get("siblings", config.USE_SIBLINGS),
             },
             "filter": self.project_filter(s.get("src", "")),
             "wavpack": bool(fx_core.wavpack_bin()),
@@ -120,7 +121,7 @@ class Api:
         s = self._settings
         s.update({"src": src, "dst": dst, "items": list(items or [])})
         for k in ("creator", "fmt", "min_s", "max_s", "test", "theme", "gap_s", "group", "bundle", "wild",
-                  "min_level", "vocal", "mode"):
+                  "min_level", "vocal", "mode", "diag", "siblings"):
             if k in opts:
                 s[k] = opts[k]
         if src and flt is not None:
@@ -216,6 +217,8 @@ class Api:
             config.GAP_S = max(0.0, float(opts.get("gap_s", config.GAP_S)))
             config.GROUP_BY_CAT = bool(opts.get("group", True))
             config.WILD_CONTINUOUS = bool(opts.get("wild", True))
+            config.DIAGNOSTICS = bool(opts.get("diag", False))
+            config.USE_SIBLINGS = bool(opts.get("siblings", True))
             if opts.get("mode") in ("library", "dx"):
                 config.MODE = opts["mode"]
             config.MIN_LEVEL_DBFS = float(opts.get("min_level", config.MIN_LEVEL_DBFS))
@@ -296,6 +299,8 @@ class Api:
                 self._push("log", "Loading AI models … (first time only, takes a moment)")
                 self._analyzer = fx_core.Analyzer(log=lambda m: self._push("log", m))
             words = lambda s: [w.strip() for w in str(s).replace(";", ",").split(",") if w.strip()]
+            config.DIAGNOSTICS = bool(opts.get("diag", False))
+            config.USE_SIBLINGS = bool(opts.get("siblings", True))
             fx_core.run(src, dst, creator=(opts.get("creator") or config.CREATOR_ID).strip(),
                         limit=20 if opts.get("test") else 0,
                         log=lambda m: self._push("log", m),

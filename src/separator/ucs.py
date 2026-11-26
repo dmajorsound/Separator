@@ -102,6 +102,10 @@ AUDIOSET_MAP = {
     "MUSCMisc": ["music", "musical instrument"],
 }
 
+# Context classes: AudioSet tags them on almost every window ("Inside, small room", "Hum" …).
+# They only win a window when no real event is clearly louder (config.AMBIENCE_WEIGHT).
+AMBIENCE_CATS = {c for c in AUDIOSET_MAP if c.startswith("AMB")}
+
 
 UCS = {c: (cat, sub) for c, cat, sub, _ in LABELS if cat}
 

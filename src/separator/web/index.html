@@ -210,6 +210,8 @@ select{font:inherit;color:var(--text);background:var(--input);border:1px solid v
         <div class="row"><label for="vocal" style="cursor:default">Screams, cries, laughs</label><select id="vocal"><option value="keep">Keep as own files</option><option value="cut">Cut like dialogue</option></select></div>
         <div class="row"><span>Creator ID</span><input type="text" id="creator" style="width:90px" class="mono"></div>
         <label><input type="checkbox" id="test"> Test run: first 20 files only</label>
+        <label title="Mono files of the same take (same tape, scene, take and timecode) are checked for speech too, so lavs in separate files help cut the boom"><input type="checkbox" id="siblings"> Use lav files of the same take for speech detection</label>
+        <label title="Writes _diagnostics/&lt;take&gt;.csv to the destination: the top 5 sound classes of every window. Send these for tuning."><input type="checkbox" id="diag"> Write diagnostics CSV per take</label>
         <hr>
         <label><input type="checkbox" id="group"> One sausage file per category and take</label>
         <label><input type="checkbox" id="wild"> Keep wild tracks (Nur-Ton, AT, WT) in one piece, only cut slates and dialogue</label>
@@ -353,6 +355,7 @@ function readOpts() { S.opts.min_s = parseFloat($('minS').value) || 0; S.opts.ma
   const ml = parseFloat($('minLevel').value); S.opts.min_level = isFinite(ml) ? Math.min(0, ml) : -55; S.opts.vocal = $('vocal').value;
   const g = parseFloat($('gapS').value); S.opts.gap_s = isFinite(g) ? Math.max(0, g) : 0.5; S.opts.group = $('group').checked;
   S.opts.wild = $('wild').checked; S.opts.bundle = $('bundle').checked;
+  S.opts.diag = $('diag').checked; S.opts.siblings = $('siblings').checked;
   S.filter.sort_ucs = $('sortUcs').checked; S.filter.split = $('split').checked;
   S.filter.keep = $('keepW').value; S.filter.drop = $('dropW').value;
   const u = document.querySelector('input[name=unk]:checked'); if (u) S.filter.unknown = u.value; }
@@ -639,7 +642,7 @@ function wire() {
     if (b.dataset.v === 'wavpack' && !S.wavpack) toast('WavPack is missing from this build.', true);
     S.opts.fmt = b.dataset.v; renderHead(); persist(); }));
   ['minS', 'maxS', 'gapS', 'creator', 'minLevel', 'vocal'].forEach((id) => $(id).addEventListener('change', () => { readOpts(); persist(); }));
-  ['test', 'sortUcs', 'split', 'group', 'wild', 'bundle'].forEach((id) => $(id).addEventListener('change', () => { readOpts(); persist(); renderHead(); }));
+  ['test', 'sortUcs', 'split', 'group', 'wild', 'bundle', 'diag', 'siblings'].forEach((id) => $(id).addEventListener('change', () => { readOpts(); persist(); renderHead(); }));
   $('optBtn').addEventListener('click', (e) => { e.stopPropagation(); $('optMenu').classList.toggle('open'); });
   $('optMenu').addEventListener('click', (e) => e.stopPropagation());
   document.addEventListener('click', () => $('optMenu').classList.remove('open'));
@@ -702,6 +705,7 @@ window.addEventListener('pywebviewready', async () => {
   $('minS').value = S.opts.min_s; $('maxS').value = S.opts.max_s; $('creator').value = S.opts.creator; $('test').checked = !!S.opts.test;
   $('gapS').value = S.opts.gap_s ?? 0.5; $('minLevel').value = S.opts.min_level ?? -55; $('vocal').value = S.opts.vocal || 'keep'; $('group').checked = S.opts.group !== false;
   $('wild').checked = S.opts.wild !== false; $('bundle').checked = S.opts.bundle !== false;
+  $('diag').checked = !!S.opts.diag; $('siblings').checked = S.opts.siblings !== false;
   syncFilterInputs(); renderAll(); if (S.src) loadFiles(); poll();
 });
 </script>
