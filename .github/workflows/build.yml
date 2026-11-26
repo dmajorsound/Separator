@@ -71,17 +71,13 @@ jobs:
 
       - name: Disk image (.dmg) with the installer and the Privacy & Security helper
         run: |
-          # macOS blocks the unsigned installer before it runs, so it can't help itself: next to it lies a
-          # web location that opens System Settings > Privacy & Security, where "Open Anyway" lifts the block
           mkdir -p dmg/.background
           cp "Separator-$V-mac.pkg" "dmg/Install Separator.pkg"
           cp "Separator-$V-mac-uninstall.pkg" "dmg/Uninstall Separator.pkg"
-          cat > "dmg/Blocked? Open Privacy & Security.webloc" <<'PLIST'
-          <?xml version="1.0" encoding="UTF-8"?>
-          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
-          <plist version="1.0"><dict><key>URL</key><string>x-apple.systempreferences:com.apple.settings.PrivacySecurity.extension</string></dict></plist>
-          PLIST
-          sed -i '' 's/^          //' "dmg/Blocked? Open Privacy & Security.webloc"
+          # a link to the system's own Privacy & Security pane: no .webloc (Finder shows the extension and
+          # does not hand that URL to System Settings), and nothing unsigned that macOS could block
+          test -d /System/Library/PreferencePanes/Security.prefPane
+          ln -s /System/Library/PreferencePanes/Security.prefPane "dmg/Blocked? Open Privacy & Security"
           tiffutil -cathidpicheck installer/mac_dmg/background.png installer/mac_dmg/background@2x.png -out dmg/.background/background.tiff
           hdiutil create -volname "Separator $V" -srcfolder dmg -ov -format UDRW -fs HFS+ rw.dmg
           DEV=$(hdiutil attach -readwrite -noverify -noautoopen rw.dmg | grep -E '^/dev/' | head -1 | awk '{print $1}')
@@ -101,7 +97,7 @@ jobs:
               set text size of opts to 12
               set background picture of opts to file ".background:background.tiff"
               set position of item "Install Separator.pkg" of container window to {150, 160}
-              set position of item "Blocked? Open Privacy & Security.webloc" of container window to {330, 160}
+              set position of item "Blocked? Open Privacy & Security" of container window to {330, 160}
               set position of item "Uninstall Separator.pkg" of container window to {530, 160}
               update without registering applications
               delay 2
@@ -110,7 +106,9 @@ jobs:
           end tell
           OSA
           sync
-          hdiutil detach "$DEV" || hdiutil detach -force "$DEV"
+          # Finder or Spotlight can hold the volume for a moment: try a few times before forcing it
+          for n in 1 2 3 4 5 6 7 8 9 10; do hdiutil detach "$DEV" && break; sleep 3; done
+          if hdiutil info | grep -q "^$DEV"; then hdiutil detach -force "$DEV"; fi
           hdiutil convert rw.dmg -format UDZO -imagekey zlib-level=9 -o "Separator-$V-mac.dmg"
 
       - uses: actions/upload-artifact@v4
