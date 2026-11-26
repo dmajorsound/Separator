@@ -1,4 +1,4 @@
-"""Separator – App-Fenster"""
+"""Separator – simple fallback window (used only if the main window can't start)"""
 
 import os
 import sys
@@ -81,7 +81,7 @@ class App:
         head.pack(fill="x", pady=(22, 4), **pad)
         tk.Label(head, text="Separator", bg=T["bg"], fg=T["text"],
                  font=(T["font"], 24, "bold")).pack(side="left")
-        tk.Label(head, text="Set-Ton → FX-Library · Dialog raus · UCS", bg=T["bg"],
+        tk.Label(head, text="Production sound → FX library · dialogue out · UCS", bg=T["bg"],
                  fg=T["dim"], font=(T["font"], 12)).pack(side="left", padx=14, pady=(8, 0))
 
         form = tk.Frame(root, bg=T["bg"])
@@ -101,15 +101,15 @@ class App:
         self.unknown = tk.StringVar()
         self.projects = s.get("projects", {})
         self._load_project(self.src.get())
-        self._row(form, 0, "Quelle", self.src, self._pick_src)
-        self._row(form, 1, "Ziel", self.dst, lambda: self._pick(self.dst, "Zielordner für die FX-Files"))
+        self._row(form, 0, "Source", self.src, self._pick_src)
+        self._row(form, 1, "Destination", self.dst, lambda: self._pick(self.dst, "Destination folder for the FX files"))
 
         tk.Label(form, text="Creator ID", bg=T["bg"], fg=T["dim"], font=(T["font"], 12),
                  anchor="w").grid(row=2, column=0, sticky="w", pady=6)
         opt = tk.Frame(form, bg=T["bg"])
         opt.grid(row=2, column=1, columnspan=2, sticky="w")
         self._entry(opt, self.creator, width=10).pack(side="left")
-        ttk.Checkbutton(opt, text="Testlauf: nur die ersten 20 Files",
+        ttk.Checkbutton(opt, text="Test run: first 20 files only",
                         variable=self.test).pack(side="left", padx=18)
 
         tk.Label(form, text="Format", bg=T["bg"], fg=T["dim"], font=(T["font"], 12),
@@ -123,22 +123,22 @@ class App:
             b.pack(side="left", padx=(0, 4))
             self.fmt_btns[val] = b
         self._set_fmt(self.fmt.get())
-        tk.Label(opt2, text="File-Länge  min", bg=T["bg"], fg=T["dim"],
+        tk.Label(opt2, text="File length  min", bg=T["bg"], fg=T["dim"],
                  font=(T["font"], 12)).pack(side="left", padx=(22, 6))
         self._entry(opt2, self.min_s, width=5).pack(side="left")
         tk.Label(opt2, text="s   max", bg=T["bg"], fg=T["dim"],
                  font=(T["font"], 12)).pack(side="left", padx=6)
         self._entry(opt2, self.max_s, width=5).pack(side="left")
-        tk.Label(opt2, text="s  (0 = unbegrenzt)", bg=T["bg"], fg=T["dim"],
+        tk.Label(opt2, text="s  (0 = unlimited)", bg=T["bg"], fg=T["dim"],
                  font=(T["font"], 12)).pack(side="left", padx=6)
 
-        tk.Label(form, text="Ordner", bg=T["bg"], fg=T["dim"], font=(T["font"], 12),
+        tk.Label(form, text="Folders", bg=T["bg"], fg=T["dim"], font=(T["font"], 12),
                  anchor="w").grid(row=4, column=0, sticky="w", pady=6)
         opt3 = tk.Frame(form, bg=T["bg"])
         opt3.grid(row=4, column=1, columnspan=2, sticky="w")
-        ttk.Checkbutton(opt3, text="In UCS-Ordner sortieren (CATEGORY/SUBCATEGORY)",
+        ttk.Checkbutton(opt3, text="Sort into UCS folders (CATEGORY/SUBCATEGORY)",
                         variable=self.sort_ucs).pack(side="left")
-        ttk.Checkbutton(opt3, text="Mehrspur-Files in Einzelspuren splitten",
+        ttk.Checkbutton(opt3, text="Split multitrack files into single tracks",
                         variable=self.split).pack(side="left", padx=18)
 
         sep = tk.Frame(root, bg=T["line"], height=1)
@@ -146,34 +146,34 @@ class App:
         flt = tk.Frame(root, bg=T["bg"])
         flt.pack(fill="x", padx=24, pady=(10, 0))
         flt.columnconfigure(1, weight=1)
-        tk.Label(flt, text="SPURFILTER für dieses Projekt", bg=T["bg"], fg=T["text"],
+        tk.Label(flt, text="TRACK FILTER for this project", bg=T["bg"], fg=T["text"],
                  font=(T["font"], 12, "bold")).grid(row=0, column=0, columnspan=2, sticky="w")
-        self._button(flt, "Spuren scannen", self.scan).grid(row=0, column=2, sticky="e")
-        tk.Label(flt, text="Verwenden", bg=T["bg"], fg=T["ok"], font=(T["font"], 12),
+        self._button(flt, "Scan tracks", self.scan).grid(row=0, column=2, sticky="e")
+        tk.Label(flt, text="Use", bg=T["bg"], fg=T["ok"], font=(T["font"], 12),
                  anchor="w", width=10).grid(row=1, column=0, sticky="w", pady=(8, 4))
         self._entry(flt, self.keep_w).grid(row=1, column=1, columnspan=2, sticky="ew", ipady=4, pady=(8, 4))
-        tk.Label(flt, text="Löschen", bg=T["bg"], fg=T["err"], font=(T["font"], 12),
+        tk.Label(flt, text="Drop", bg=T["bg"], fg=T["err"], font=(T["font"], 12),
                  anchor="w", width=10).grid(row=2, column=0, sticky="w", pady=4)
         self._entry(flt, self.drop_w).grid(row=2, column=1, columnspan=2, sticky="ew", ipady=4, pady=4)
-        tk.Label(flt, text="Unbekannte", bg=T["bg"], fg=T["dim"], font=(T["font"], 12),
+        tk.Label(flt, text="Unknown", bg=T["bg"], fg=T["dim"], font=(T["font"], 12),
                  anchor="w", width=10).grid(row=3, column=0, sticky="w", pady=4)
         unk = tk.Frame(flt, bg=T["bg"])
         unk.grid(row=3, column=1, columnspan=2, sticky="w")
-        for val, txt in (("fallback", "nur wenn sonst keine Spur passt"), ("keep", "immer verwenden"),
-                         ("drop", "immer löschen")):
+        for val, txt in (("fallback", "only if no other track matches"), ("keep", "always use"),
+                         ("drop", "always drop")):
             tk.Radiobutton(unk, text=txt, value=val, variable=self.unknown, bg=T["bg"], fg=T["text"],
                            selectcolor=T["panel"], activebackground=T["bg"], activeforeground=T["text"],
                            highlightthickness=0, font=(T["font"], 12)).pack(side="left", padx=(0, 14))
-        tk.Label(flt, text="Wörter mit Komma trennen. Treffer am Wortanfang: „lav“ erwischt Lav1, Lav Hans. "
-                           "Verwenden schlägt Löschen („Boom ISO“ bleibt).", bg=T["bg"], fg=T["dim"],
+        tk.Label(flt, text="Separate words with commas. Words match the start of a name: “lav” catches Lav1, Lav Hans. "
+                           "Use beats Drop (“Boom ISO” stays).", bg=T["bg"], fg=T["dim"],
                  font=(T["font"], 11), anchor="w", justify="left").grid(row=4, column=0, columnspan=3, sticky="w", pady=(4, 0))
 
         bar = tk.Frame(root, bg=T["bg"])
         bar.pack(fill="x", pady=(18, 0), **pad)
         self.btn = self._button(bar, "Start", self.start, primary=True)
         self.btn.pack(side="left")
-        self._button(bar, "Zielordner öffnen", self.open_dst).pack(side="left", padx=10)
-        self.status = tk.Label(bar, text="Bereit", bg=T["bg"], fg=T["dim"], font=(T["font"], 12))
+        self._button(bar, "Open destination", self.open_dst).pack(side="left", padx=10)
+        self.status = tk.Label(bar, text="Ready", bg=T["bg"], fg=T["dim"], font=(T["font"], 12))
         self.status.pack(side="right")
 
         self.prog = ttk.Progressbar(root, mode="determinate", maximum=1)
@@ -189,8 +189,8 @@ class App:
         self.log.tag_config("ok", foreground=T["ok"])
         self.log.tag_config("dim", foreground=T["dim"])
         self.log.configure(state="disabled")
-        self._write("Quelle und Ziel wählen, dann Start. Beim ersten Start werden die "
-                    "KI-Modelle geladen, das dauert etwas.", "dim")
+        self._write("Choose source and destination, then Start. The first start loads "
+                    "the AI models, which takes a moment.", "dim")
 
         root.protocol("WM_DELETE_WINDOW", self.close)
         root.after(100, self.poll)
@@ -211,7 +211,7 @@ class App:
         tk.Label(parent, text=label, bg=T["bg"], fg=T["dim"], font=(T["font"], 12),
                  anchor="w", width=10).grid(row=r, column=0, sticky="w", pady=6)
         self._entry(parent, var).grid(row=r, column=1, sticky="ew", ipady=5)
-        self._button(parent, "Wählen …", cmd).grid(row=r, column=2, padx=(10, 0))
+        self._button(parent, "Choose …", cmd).grid(row=r, column=2, padx=(10, 0))
 
     def _button(self, parent, text, cmd, primary=False):
         # Label statt Button, weil macOS-Buttons keine eigenen Farben zulassen
@@ -248,19 +248,19 @@ class App:
     def scan(self):
         src = self.src.get().strip()
         if not os.path.isdir(src):
-            self._write("Bitte zuerst einen Quellordner wählen.", "err")
+            self._write("Please choose a source folder first.", "err")
             return
         self._apply_filter()
-        self._write("Scanne Spurnamen (nur Header) …", "dim")
+        self._write("Scanning track names (headers only) …", "dim")
 
         def work():
             n, counts = fx_core.scan_tracks(src)
-            self.q.put(("log", f"{n} Files, {len(counts)} verschiedene Spurnamen:"))
+            self.q.put(("log", f"{n} files, {len(counts)} different track names:"))
             for name, c in counts:
                 cls = fx_core.classify_track(name) if not name.startswith("(") else "keep"
-                mark = {"keep": "✓ verwenden", "drop": "✗ löschen", "unknown": "? unbekannt"}[cls]
+                mark = {"keep": "✓ use", "drop": "✗ drop", "unknown": "? unknown"}[cls]
                 self.q.put(("log", f"   {mark:13} {name}  ({c}×)"))
-            self.q.put(("log", "Filter anpassen und nochmal scannen, bis alles passt."))
+            self.q.put(("log", "Adjust the filter and scan again until everything fits."))
         threading.Thread(target=work, daemon=True).start()
 
     def _set_fmt(self, v):
@@ -277,7 +277,7 @@ class App:
             return default
 
     def _pick_src(self):
-        self._pick(self.src, "Ordner mit den Settönen")
+        self._pick(self.src, "Folder with the production sound")
         self._load_project(self.src.get())
 
     def _pick(self, var, title):
@@ -295,17 +295,17 @@ class App:
     def start(self):
         if self.worker and self.worker.is_alive():
             self.stop_flag = True
-            self.status.configure(text="Stoppe nach diesem File …")
+            self.status.configure(text="Stopping after this file …")
             return
         src, dst = self.src.get().strip(), self.dst.get().strip()
         if not os.path.isdir(src):
-            self._write("Bitte einen gültigen Quellordner wählen.", "err")
+            self._write("Please choose a valid source folder.", "err")
             return
         if not dst:
-            self._write("Bitte einen Zielordner wählen.", "err")
+            self._write("Please choose a destination folder.", "err")
             return
         if os.path.abspath(dst) == os.path.abspath(src):
-            self._write("Ziel darf nicht der Quellordner sein.", "err")
+            self._write("The destination can't be the source folder.", "err")
             return
         self.projects[os.path.abspath(src)] = self._project_now()
         save_settings({"projects": self.projects, "src": src, "dst": dst, "creator": self.creator.get().strip(),
@@ -315,7 +315,7 @@ class App:
         self.stop_flag = False
         self.t_start = time.time()
         self.btn.configure(text="Stop")
-        self.status.configure(text="Läuft …")
+        self.status.configure(text="Running …")
         self.worker = threading.Thread(target=self._work, args=(src, dst), daemon=True)
         self.worker.start()
 
@@ -334,7 +334,7 @@ class App:
                         keep_words=self._words(self.keep_w), drop_words=self._words(self.drop_w),
                         unknown=self.unknown.get())
         except Exception as ex:
-            self.q.put(("log", f"FEHLER: {ex}"))
+            self.q.put(("log", f"ERROR: {ex}"))
         self.q.put(("done", None))
 
     def poll(self):
@@ -342,8 +342,8 @@ class App:
             while True:
                 kind, val = self.q.get_nowait()
                 if kind == "log":
-                    tag = "err" if "FEHLER" in val else ("ok" if val.startswith("Fertig") else
-                                                          ("dim" if "erledigt" in val else None))
+                    tag = "err" if "ERROR" in val else ("ok" if val.startswith("Done") else
+                                                          ("dim" if "already done" in val else None))
                     self._write(val, tag)
                 elif kind == "prog":
                     i, n = val
@@ -352,14 +352,14 @@ class App:
                     if 0 < i < n:
                         rest = (time.time() - self.t_start) / i * (n - i)
                         h, m = divmod(int(rest // 60), 60)
-                        eta = f" · noch ca. {h} h {m} min" if h else f" · noch ca. {m} min"
+                        eta = f" · about {h} h {m} min left" if h else f" · about {m} min left"
                     self.status.configure(text=f"{i} / {n}{eta}")
                 elif kind == "done":
                     self.btn.configure(text="Start")
                     if not self.stop_flag:
-                        self.status.configure(text="Fertig")
+                        self.status.configure(text="Done")
                     else:
-                        self.status.configure(text="Gestoppt")
+                        self.status.configure(text="Stopped")
         except queue.Empty:
             pass
         self.root.after(150, self.poll)

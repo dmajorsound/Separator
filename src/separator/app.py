@@ -127,7 +127,7 @@ class Api:
 
     def list_files(self, src, dst):
         if not src or not os.path.isdir(src):
-            return {"ok": False, "msg": "Quellordner nicht gefunden"}
+            return {"ok": False, "msg": "Source folder not found"}
         src = os.path.abspath(src)
         files = fx_core.find_files(src, dst or os.path.join(src, "\0"))
         done = fx_core.read_done(dst) if dst and os.path.isdir(dst) else {}
@@ -177,7 +177,7 @@ class Api:
             fx_core.WILD_CONTINUOUS = bool(opts.get("wild", True))
         try:
             if self._analyzer is None:
-                self._push("log", "Lade KI-Modelle … (einmalig, dauert etwas)")
+                self._push("log", "Loading AI models … (first time only, takes a moment)")
                 self._analyzer = fx_core.Analyzer(log=lambda m: self._push("log", m))
             return fx_core.preview(os.path.join(src, rel), self._analyzer, rel)
         except Exception as ex:
@@ -212,15 +212,15 @@ class Api:
     # ---------- Lauf ----------
     def start(self, src, dst, opts, flt, only=None):
         if self._running:
-            return {"ok": False, "msg": "Läuft schon"}
+            return {"ok": False, "msg": "Already running"}
         if not os.path.isdir(src or ""):
-            return {"ok": False, "msg": "Bitte einen Quellordner wählen."}
+            return {"ok": False, "msg": "Please choose a source folder."}
         if not dst:
-            return {"ok": False, "msg": "Bitte einen Zielordner wählen."}
+            return {"ok": False, "msg": "Please choose a destination folder."}
         if os.path.abspath(dst) == os.path.abspath(src):
-            return {"ok": False, "msg": "Ziel darf nicht der Quellordner sein."}
+            return {"ok": False, "msg": "The destination can't be the source folder."}
         if opts.get("fmt") == "wavpack" and not fx_core.wavpack_bin():
-            return {"ok": False, "msg": "WavPack fehlt. Im Terminal: brew install wavpack"}
+            return {"ok": False, "msg": "WavPack is missing from this build – please choose WAV."}
         self.save(src, dst, opts, flt)
         self._running, self._stop_flag = True, False
         self._t_start, self._n_done, self._secs_done = time.time(), 0, 0.0
@@ -242,7 +242,7 @@ class Api:
     def _work(self, src, dst, opts, flt, only):
         try:
             if self._analyzer is None:
-                self._push("log", "Lade KI-Modelle … (einmalig, dauert etwas)")
+                self._push("log", "Loading AI models … (first time only, takes a moment)")
                 self._analyzer = fx_core.Analyzer(log=lambda m: self._push("log", m))
             words = lambda s: [w.strip() for w in str(s).replace(";", ",").split(",") if w.strip()]
             fx_core.run(src, dst, creator=(opts.get("creator") or fx_core.CREATOR_ID).strip(),
@@ -258,22 +258,22 @@ class Api:
                         group_cat=opts.get("group", True), gap_s=float(opts.get("gap_s", fx_core.GAP_S)),
                         bundle=opts.get("bundle", True), wild_cont=opts.get("wild", True))
         except Exception as ex:
-            self._push("log", f"FEHLER: {ex}")
+            self._push("log", f"ERROR: {ex}")
         self._running = False
         self._push("stopped", {"stopped": self._stop_flag})
 
     def bundle(self, dst, opts):
         """Projekt-Sausages aus allen bisher gemerkten Regionen (neu) bauen"""
         if self._running:
-            return {"ok": False, "msg": "Läuft gerade"}
+            return {"ok": False, "msg": "Already running"}
         if not dst or not os.path.isdir(dst):
-            return {"ok": False, "msg": "Bitte einen Zielordner wählen."}
+            return {"ok": False, "msg": "Please choose a destination folder."}
         self._running, self._stop_flag = True, False
 
         def work():
             try:
                 if self._analyzer is None:
-                    self._push("log", "Lade KI-Modelle … (einmalig, dauert etwas)")
+                    self._push("log", "Loading AI models … (first time only, takes a moment)")
                     self._analyzer = fx_core.Analyzer(log=lambda m: self._push("log", m))
                 fx_core.GAP_S = max(0.0, float(opts.get("gap_s", fx_core.GAP_S)))
                 fx_core.MAX_FILE_S = max(0.0, float(opts.get("max_s", fx_core.MAX_FILE_S)))
@@ -281,7 +281,7 @@ class Api:
                 fx_core.bundle_project(dst, self._analyzer, (opts.get("creator") or fx_core.CREATOR_ID).strip(),
                                        log=lambda m: self._push("log", m), on_event=self._on_event)
             except Exception as ex:
-                self._push("log", f"FEHLER Projekt-Sausages: {ex}")
+                self._push("log", f"ERROR project sausages: {ex}")
             self._running = False
             self._push("stopped", {"stopped": False, "bundle": True})
         threading.Thread(target=work, daemon=True).start()

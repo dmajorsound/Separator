@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="de" data-theme="dark">
+<html lang="en" data-theme="dark">
 <head>
 <meta charset="utf-8">
 <title>Separator</title>
@@ -166,45 +166,45 @@ button.icon{width:30px;padding:0}
       <rect x="17" y="10" width="6" height="20" rx="1.5" fill="none" stroke="#fff" stroke-width="1.4" stroke-dasharray="2 2"/>
     </svg>
     <div class="brand"><b>Separator</b><span id="ver">V 1.1</span></div>
-    <div class="chip src empty" id="srcChip" title="Quellordner mit den Settönen"><span class="t">Quelle wählen …</span></div>
-    <div class="chip dst empty" id="dstChip" title="Zielordner für die FX-Files"><span class="t">→ Ziel wählen …</span></div>
+    <div class="chip src empty" id="srcChip" title="Source folder with the production sound"><span class="t">Choose source …</span></div>
+    <div class="chip dst empty" id="dstChip" title="Destination folder for the FX files"><span class="t">→ Choose destination …</span></div>
     <div class="stats"><span id="st1">–</span><span class="d" id="st2"></span></div>
     <div class="grow"></div>
     <div class="seg" id="fmtSeg"><button data-v="wav">WAV</button><button data-v="wavpack">WavPack</button></div>
     <div class="lenbox">
-      <div>Länge <input type="number" id="minS" min="0" step="0.5" aria-label="Minimale File-Länge in Sekunden"> – <input type="number" id="maxS" min="0" step="1" aria-label="Maximale File-Länge in Sekunden, 0 = unbegrenzt"> s</div>
-      <div title="Stille zwischen den Geräuschen im Sausage-File">Pause <input type="number" id="gapS" min="0" step="0.1" aria-label="Pause zwischen den Geräuschen in Sekunden"> s</div>
+      <div>Length <input type="number" id="minS" min="0" step="0.5" aria-label="Minimum file length in seconds"> – <input type="number" id="maxS" min="0" step="1" aria-label="Maximum file length in seconds, 0 = unlimited"> s</div>
+      <div title="Silence between sounds in a sausage file">Gap <input type="number" id="gapS" min="0" step="0.1" aria-label="Gap between sounds in seconds"> s</div>
     </div>
-    <button id="fltBtn">Spurfilter</button>
+    <button id="fltBtn">Track Filter</button>
     <div class="drop">
-      <button id="optBtn">Optionen ▾</button>
+      <button id="optBtn">Options ▾</button>
       <div class="menu" id="optMenu">
         <div class="row"><span>Creator ID</span><input type="text" id="creator" style="width:90px" class="mono"></div>
-        <label><input type="checkbox" id="test"> Testlauf: nur die ersten 20 Files</label>
+        <label><input type="checkbox" id="test"> Test run: first 20 files only</label>
         <hr>
-        <label><input type="checkbox" id="group"> Ein Sausage-File pro Kategorie und Take</label>
-        <label><input type="checkbox" id="wild"> Nur-Ton / AT / Wildtrack am Stück lassen (nur Ansagen und Dialog raus)</label>
-        <label><input type="checkbox" id="bundle"> Nach dem Lauf Projekt-Sausages bauen (ähnliche Geräusche aller Takes)</label>
-        <button id="bundleBtn">Projekt-Sausages jetzt neu bauen</button>
-        <label><input type="checkbox" id="sortUcs"> In UCS-Ordner sortieren (CATEGORY/SUBCATEGORY)</label>
-        <label><input type="checkbox" id="split"> Mehrspur-Files in Einzelspuren splitten</label>
+        <label><input type="checkbox" id="group"> One sausage file per category and take</label>
+        <label><input type="checkbox" id="wild"> Keep wild tracks (Nur-Ton, AT, WT) in one piece, only cut slates and dialogue</label>
+        <label><input type="checkbox" id="bundle"> Build project sausages after the run (similar sounds from all takes)</label>
+        <button id="bundleBtn">Rebuild project sausages now</button>
+        <label><input type="checkbox" id="sortUcs"> Sort into UCS folders (CATEGORY/SUBCATEGORY)</label>
+        <label><input type="checkbox" id="split"> Split multitrack files into single tracks</label>
         <hr>
-        <div class="row"><button id="openDst" style="flex:1">Zielordner öffnen</button><button id="themeBtn" style="flex:1">Hell / Dunkel</button></div>
-        <button id="helpBtn">Hilfe</button>
+        <div class="row"><button id="openDst" style="flex:1">Open destination</button><button id="themeBtn" style="flex:1">Light / Dark</button></div>
+        <button id="helpBtn">Help</button>
       </div>
     </div>
-    <div class="tc"><span class="v" id="eta">--:--:--</span><span class="l">VERBLEIBEND</span></div>
+    <div class="tc"><span class="v" id="eta">--:--:--</span><span class="l">REMAINING</span></div>
     <button class="primary" id="runBtn">Start</button>
   </div>
 
   <div class="main">
     <div class="box list">
       <div class="bar">
-        <span id="listInfo" style="color:var(--dim)">Keine Quelle</span>
+        <span id="listInfo" style="color:var(--dim)">No source</span>
         <span class="grow"></span>
-        <span class="tabs" id="tabs"><span data-t="all" class="on">Alle</span><span data-t="open">Offen</span><span data-t="done">Fertig</span><span data-t="err">Fehler</span></span>
+        <span class="tabs" id="tabs"><span data-t="all" class="on">All</span><span data-t="open">Open</span><span data-t="done">Done</span><span data-t="err">Errors</span></span>
       </div>
-      <div class="rows" id="rows"><div class="empty-msg">Oben links den Quellordner mit den Settönen wählen. Separator liest dann nur die Header und zeigt alle Takes hier an.</div></div>
+      <div class="rows" id="rows"><div class="empty-msg">Choose the folder with your production sound at the top left. Separator reads only the file headers and lists every take here.</div></div>
     </div>
 
     <div class="box view">
@@ -212,41 +212,41 @@ button.icon{width:30px;padding:0}
         <span class="mono" style="font-weight:600" id="vName">–</span>
         <span id="vMeta" style="color:var(--dim);white-space:nowrap;overflow:hidden;text-overflow:ellipsis"></span>
         <span class="grow"></span>
-        <span class="legend"><i class="hatch"></i>Dialog / zu kurz – wird geschnitten</span>
-        <button id="followBtn" style="height:24px;font-size:11px;display:none">Live folgen</button>
-        <button id="anaBtn" style="height:24px;font-size:11px" disabled>Vorschau analysieren</button>
+        <span class="legend"><i class="hatch"></i>Dialogue / too short – will be cut</span>
+        <button id="followBtn" style="height:24px;font-size:11px;display:none">Follow live</button>
+        <button id="anaBtn" style="height:24px;font-size:11px" disabled>Analyze preview</button>
       </div>
       <div class="ruler"><div class="pad"></div><div class="r" id="ruler"></div></div>
       <div class="lanes" id="lanes"><div class="tags" id="tags"></div></div>
-      <div class="outs" id="outs"><span class="ttl">ERGEBNIS</span><span style="color:var(--dim)">–</span></div>
+      <div class="outs" id="outs"><span class="ttl">OUTPUT</span><span style="color:var(--dim)">–</span></div>
     </div>
 
     <div class="panel" id="panel">
-      <div class="bar"><b>SPURFILTER</b><span id="pName" style="color:var(--dim)"></span><span class="grow"></span><button id="pClose" style="height:24px">Fertig</button></div>
+      <div class="bar"><b>TRACK FILTER</b><span id="pName" style="color:var(--dim)"></span><span class="grow"></span><button id="pClose" style="height:24px">Done</button></div>
       <div class="body">
         <div class="f">
-          <span style="color:var(--ok);font-weight:600">Verwenden</span><input type="text" id="keepW" class="mono">
-          <span style="color:var(--err);font-weight:600">Löschen</span><input type="text" id="dropW" class="mono">
+          <span style="color:var(--ok);font-weight:600">Use</span><input type="text" id="keepW" class="mono">
+          <span style="color:var(--err);font-weight:600">Drop</span><input type="text" id="dropW" class="mono">
         </div>
-        <div class="small">Wörter mit Komma trennen. Treffer am Wortanfang: „lav“ erwischt Lav1 und Lav Hans. Verwenden schlägt Löschen, „Boom ISO“ bleibt also. Gilt nur für diesen Quellordner.</div>
-        <div class="lbl">UNBEKANNTE SPUREN</div>
+        <div class="small">Separate words with commas. Words match the start of a track name: “lav” catches Lav1 and Lav Hans. Use beats Drop, so “Boom ISO” stays. Applies to this source folder only.</div>
+        <div class="lbl">UNKNOWN TRACKS</div>
         <div class="opts">
-          <label><input type="radio" name="unk" value="fallback"> nur verwenden, wenn sonst keine Spur passt</label>
-          <label><input type="radio" name="unk" value="keep"> immer verwenden</label>
-          <label><input type="radio" name="unk" value="drop"> immer löschen</label>
+          <label><input type="radio" name="unk" value="fallback"> use only if no other track matches</label>
+          <label><input type="radio" name="unk" value="keep"> always use</label>
+          <label><input type="radio" name="unk" value="drop"> always drop</label>
         </div>
         <div style="display:flex;align-items:center;gap:10px">
-          <div class="lbl">SPUREN IM PROJEKT</div><span class="grow"></span>
-          <span class="small" id="scanInfo"></span><button id="scanBtn" style="height:26px">Scannen</button>
+          <div class="lbl">TRACKS IN THIS PROJECT</div><span class="grow"></span>
+          <span class="small" id="scanInfo"></span><button id="scanBtn" style="height:26px">Scan</button>
         </div>
-        <div class="trows" id="trows"><div class="trow" style="cursor:default"><span class="small">Scannen liest alle Spurnamen aus den Headern.</span></div></div>
-        <div class="small">Klick auf eine Zeile schaltet zwischen Verwenden und Löschen um.</div>
+        <div class="trows" id="trows"><div class="trow" style="cursor:default"><span class="small">Scan reads every track name from the file headers.</span></div></div>
+        <div class="small">Click a row to switch between Use and Drop.</div>
       </div>
     </div>
   </div>
 
-  <div class="info"><span id="iFile" style="font-weight:600"></span><span class="msg" id="iMsg">Bereit</span><div class="prog"><div id="progBar"></div></div><span id="iCount">0 / 0</span></div>
-  <div class="help" id="helpLine">Häkchen bei den Spuren und der Spurfilter entscheiden, was ins FX-File kommt. Dialog wird geschnitten, Originale bleiben unverändert.</div>
+  <div class="info"><span id="iFile" style="font-weight:600"></span><span class="msg" id="iMsg">Ready</span><div class="prog"><div id="progBar"></div></div><span id="iCount">0 / 0</span></div>
+  <div class="help" id="helpLine">Track checkboxes and the track filter decide what goes into the FX files. Dialogue is cut, originals stay untouched.</div>
   <div class="foot"><span id="verFoot">V 1.2 - developed with AI assistance</span><span class="grow"></span>
     <a class="upd" id="upd" href="#" style="display:none"><i></i><span id="updTxt"></span></a>
     <a class="site" href="#" id="siteLink">dmajorsound.com</a><img class="logo" src="dmajor_mark.png" alt="dmajorsound"></div>
@@ -254,17 +254,17 @@ button.icon{width:30px;padding:0}
 
 <div class="overlay" id="help"><div class="card">
   <h2>Separator</h2>
-  Entfernt Dialog aus Set-Tönen und schreibt die übrigen Geräusche als UCS-benannte FX-Files mit Regionen.
+  Removes dialogue from production sound and writes the remaining sounds as UCS-named FX files with regions.
   <ul>
-    <li><b>Quelle / Ziel:</b> Chips oben links. Originale werden nie verändert.</li>
-    <li><b>Spurfilter:</b> pro Projekt. „Scannen“ zeigt alle Spurnamen, Klick schaltet Verwenden/Löschen.</li>
-    <li><b>Vorschau analysieren:</b> zeigt für den gewählten Take, was geschnitten und was behalten wird, ohne etwas zu schreiben.</li>
-    <li><b>Länge:</b> kürzere Ergebnisse werden verworfen, längere an Geräuschgrenzen geteilt (0 = unbegrenzt).</li>
-    <li><b>Optionen:</b> Creator ID, Testlauf, UCS-Ordner, Einzelspuren, Hell/Dunkel.</li>
-    <li><b>Stop:</b> nach dem aktuellen Take. Beim nächsten Start geht es dort weiter.</li>
+    <li><b>Source / Destination:</b> the chips at the top left. Originals are never changed.</li>
+    <li><b>Track Filter:</b> per project. Scan lists every track name, a click switches Use/Drop.</li>
+    <li><b>Analyze preview:</b> shows what gets cut and what stays for the selected take, without writing anything. Double-click a take does the same.</li>
+    <li><b>Length:</b> shorter results are dropped, longer ones are split at sound boundaries (0 = unlimited). <b>Gap:</b> silence between sounds in a sausage file.</li>
+    <li><b>Options:</b> Creator ID, test run, sausage files, wild tracks, project sausages, UCS folders, single tracks, light/dark.</li>
+    <li><b>Stop:</b> after the current take. The next start picks up where it left off.</li>
   </ul>
-  Dateinamen: <span class="mono">CatID_FXName_CreatorID_Projekt_Sc-Tk.wav</span>. Beschreibung, Keywords (englisch und deutsch) und UCS-Felder stehen in bext, iXML und INFO.
-  <div style="text-align:right;margin-top:12px"><button id="helpClose">Schließen</button></div>
+  File names: <span class="mono">CatID_FXName_CreatorID_Project_Sc-Tk.wav</span>. Description, keywords (English and German) and UCS fields go into bext, iXML and INFO.
+  <div style="text-align:right;margin-top:12px"><button id="helpClose">Close</button></div>
 </div></div>
 <div class="toast" id="toast"></div>
 
@@ -279,7 +279,7 @@ const CAT_COL = [['FEET', '#E0A04A'], ['DOOR', '#6FA6EE'], ['CLOTH', '#B48CE8'],
   ['WIND', '#A9C6F0'], ['RAIN', '#A9C6F0'], ['MUSC', '#C38AF0'], ['', '#B8BCC4']];
 const catColor = (id) => CAT_COL.find(([p]) => (id || '').startsWith(p))[1];
 
-/* ---------- kleine Helfer ---------- */
+/* ---------- helpers ---------- */
 function toast(msg, err) { const t = $('toast'); t.textContent = msg; t.className = 'toast' + (err ? ' err' : ''); t.style.display = 'block';
   clearTimeout(toast.h); toast.h = setTimeout(() => t.style.display = 'none', 4200); }
 function hms(s) { if (s == null || !isFinite(s)) return '--:--:--'; s = Math.max(0, Math.round(s));
@@ -296,14 +296,14 @@ function usedSet(names) { // wie select_channels im Kern
   cls.forEach((c, i) => { if (c === 'keep') keep.push(i); else if (c === 'unknown') unk.push(i); });
   if (S.filter.unknown === 'keep') return keep.concat(unk).sort((a, b) => a - b);
   if (S.filter.unknown === 'drop') return keep; return keep.length ? keep : unk; }
-function toggleTrack(name) { // erstes Wort des Spurnamens zwischen Verwenden und Löschen schalten
+function toggleTrack(name) { // switch the first word of the track name between Use and Drop
   const w = tokens(name)[0]; if (!w) return;
   let keep = words(S.filter.keep), drop = words(S.filter.drop);
   if (classify(name) === 'keep') { keep = keep.filter((x) => !tokens(name).some((t) => t === x || (x.length > 3 && t.startsWith(x)))); if (!drop.includes(w)) drop.push(w); }
   else { drop = drop.filter((x) => x !== w); if (!keep.includes(w)) keep.push(w); }
   S.filter.keep = keep.join(', '); S.filter.drop = drop.join(', '); syncFilterInputs(); persist(); renderAll(); }
 
-/* ---------- Speichern ---------- */
+/* ---------- saving ---------- */
 function readOpts() { S.opts.min_s = parseFloat($('minS').value) || 0; S.opts.max_s = parseFloat($('maxS').value) || 0;
   S.opts.creator = $('creator').value.trim(); S.opts.test = $('test').checked;
   const g = parseFloat($('gapS').value); S.opts.gap_s = isFinite(g) ? Math.max(0, g) : 0.5; S.opts.group = $('group').checked;
@@ -316,61 +316,61 @@ function syncFilterInputs() { $('keepW').value = S.filter.keep || ''; $('dropW')
   document.querySelectorAll('input[name=unk]').forEach((r) => r.checked = r.value === (S.filter.unknown || 'fallback'));
   $('sortUcs').checked = !!S.filter.sort_ucs; $('split').checked = !!S.filter.split; }
 
-/* ---------- Kopf ---------- */
+/* ---------- header ---------- */
 function renderHead() {
   const sc = $('srcChip'), dc = $('dstChip');
   sc.className = 'chip src' + (S.src ? '' : ' empty');
-  sc.innerHTML = S.src ? `<span class="t">${esc(S.srcName)}</span><span class="x" id="srcX">×</span>` : '<span class="t">Quelle wählen …</span>';
+  sc.innerHTML = S.src ? `<span class="t">${esc(S.srcName)}</span><span class="x" id="srcX">×</span>` : '<span class="t">Choose source …</span>';
   dc.className = 'chip dst' + (S.dst ? '' : ' empty');
-  dc.innerHTML = `<span class="t">→ ${S.dst ? esc(S.dst.split('/').filter(Boolean).pop()) : 'Ziel wählen …'}</span>`;
-  sc.title = S.src || 'Quellordner mit den Settönen'; dc.title = S.dst || 'Zielordner für die FX-Files';
+  dc.innerHTML = `<span class="t">→ ${S.dst ? esc(S.dst.split('/').filter(Boolean).pop()) : 'Choose destination …'}</span>`;
+  sc.title = S.src || 'Source folder with the production sound'; dc.title = S.dst || 'Destination folder for the FX files';
   const n = S.files.length, h = S.files.reduce((a, f) => a + (f.dur || 0), 0) / 3600;
   const fin = S.files.filter((f) => ['ok', 'dialog', 'notrack'].includes(f.status)).length;
-  $('st1').textContent = n ? `${n} Files · ${h < 10 ? h.toFixed(1) : Math.round(h)} h` : 'Keine Quelle';
-  $('st2').innerHTML = n ? `${(S.sr / 1000) || '–'} kHz · ${S.bits || '–'} bit · <span class="g">${fin} fertig</span>` : '';
+  $('st1').textContent = n ? `${n} files · ${h < 10 ? h.toFixed(1) : Math.round(h)} h` : 'No source';
+  $('st2').innerHTML = n ? `${(S.sr / 1000) || '–'} kHz · ${S.bits || '–'} bit · <span class="g">${fin} done</span>` : '';
   document.querySelectorAll('#fmtSeg button').forEach((b) => b.classList.toggle('on', b.dataset.v === (S.opts.fmt || 'wav')));
-  $('runBtn').textContent = S.running ? 'Stop' : (S.opts.test ? 'Testlauf' : 'Start');
+  $('runBtn').textContent = S.running ? 'Stop' : (S.opts.test ? 'Test Run' : 'Start');
   $('anaBtn').disabled = S.running || !S.sel;
 }
 
-/* ---------- Liste ---------- */
-const ST = { open: ['–', 'var(--dim)', 'var(--line)'], running: ['läuft …', 'var(--blue)', 'var(--blue)'],
-  ok: [null, 'var(--ok)', 'var(--ok)'], dialog: ['nur Dialog', 'var(--err)', 'var(--err)'],
-  notrack: ['keine Spur', 'var(--warn)', 'var(--warn)'], error: ['Fehler', 'var(--err)', 'var(--err)'] };
+/* ---------- list ---------- */
+const ST = { open: ['–', 'var(--dim)', 'var(--line)'], running: ['running …', 'var(--blue)', 'var(--blue)'],
+  ok: [null, 'var(--ok)', 'var(--ok)'], dialog: ['dialogue only', 'var(--err)', 'var(--err)'],
+  notrack: ['no track', 'var(--warn)', 'var(--warn)'], error: ['error', 'var(--err)', 'var(--err)'] };
 function fileSub(f) { const p = [];
-  if (f.scene) p.push('Sc ' + f.scene); if (f.take) p.push('Tk ' + f.take); if (f.wild) p.push('Nur-Ton');
+  if (f.scene) p.push('Sc ' + f.scene); if (f.take) p.push('Tk ' + f.take); if (f.wild) p.push('wild track');
   const names = f.tracks || [], used = usedSet(names);
-  if (names.some(Boolean)) p.push(used.map((i) => names[i]).filter(Boolean).join(', ') || 'keine Spur');
-  else if (f.ch) p.push(f.ch + ' Spur' + (f.ch > 1 ? 'en' : ''));
+  if (names.some(Boolean)) p.push(used.map((i) => names[i]).filter(Boolean).join(', ') || 'no track');
+  else if (f.ch) p.push(f.ch + ' track' + (f.ch > 1 ? 's' : ''));
   return p.join(' · '); }
 function renderList() {
   const rows = $('rows');
-  if (!S.files.length) { rows.innerHTML = `<div class="empty-msg">${S.src ? 'Keine WAV-Files in diesem Ordner gefunden.' : 'Oben links den Quellordner mit den Settönen wählen. Separator liest dann nur die Header und zeigt alle Takes hier an.'}</div>`;
-    $('listInfo').textContent = S.src ? '0 Takes' : 'Keine Quelle'; return; }
+  if (!S.files.length) { rows.innerHTML = `<div class="empty-msg">${S.src ? 'No WAV files in this folder.' : 'Choose the folder with your production sound at the top left. Separator reads only the file headers and lists every take here.'}</div>`;
+    $('listInfo').textContent = S.src ? '0 Takes' : 'No source'; return; }
   const flt = { all: () => true, open: (f) => f.status === 'open' || f.status === 'running',
     done: (f) => ['ok', 'dialog', 'notrack'].includes(f.status), err: (f) => f.status === 'error' };
   const list = S.files.filter(flt[S.tab]);
-  $('listInfo').textContent = `${list.length} von ${S.files.length} Takes`;
+  $('listInfo').textContent = `${list.length} of ${S.files.length} takes`;
   rows.innerHTML = list.map((f) => { const st = ST[f.status] || ST.open;
-    const txt = f.status === 'ok' ? `${f.count} File${f.count === 1 ? '' : 's'}` : st[0];
+    const txt = f.status === 'ok' ? `${f.count} file${f.count === 1 ? '' : 's'}` : st[0];
     return `<div class="frow${S.sel === f.rel ? ' sel' : ''}" data-rel="${esc(f.rel)}"><span class="b" style="background:${st[2]}"></span>
       <div class="n"><b>${esc(f.rel)}</b><span>${esc(fileSub(f))}</span></div><span class="s" style="color:${st[1]}">${esc(txt)}</span></div>`; }).join('');
 }
 function updateRow(rel) { const f = S.byRel[rel]; if (!f) return;
   const el = document.querySelector(`.frow[data-rel="${CSS.escape(rel)}"]`); if (!el) return renderList();
-  const st = ST[f.status] || ST.open; const txt = f.status === 'ok' ? `${f.count} File${f.count === 1 ? '' : 's'}` : st[0];
+  const st = ST[f.status] || ST.open; const txt = f.status === 'ok' ? `${f.count} file${f.count === 1 ? '' : 's'}` : st[0];
   el.querySelector('.b').style.background = st[2]; const s = el.querySelector('.s'); s.textContent = txt; s.style.color = st[1]; }
 
-/* ---------- Spur-Ansicht ---------- */
+/* ---------- track view ---------- */
 function renderView() {
   const v = S.view, lanesEl = $('lanes');
   lanesEl.querySelectorAll('.lane,.hint').forEach((e) => e.remove()); $('tags').innerHTML = ''; $('ruler').innerHTML = '';
-  if (!v || v.error) { $('vName').textContent = v && v.error ? 'Fehler' : '–'; $('vMeta').textContent = v && v.error ? v.error : '';
+  if (!v || v.error) { $('vName').textContent = v && v.error ? 'Error' : '–'; $('vMeta').textContent = v && v.error ? v.error : '';
     const h = document.createElement('div'); h.className = 'hint'; h.style.bottom = '45%';
-    h.textContent = S.files.length ? 'Einen Take links anklicken.' : ''; lanesEl.appendChild(h); renderOuts(); return; }
+    h.textContent = S.files.length ? 'Click a take on the left.' : ''; lanesEl.appendChild(h); renderOuts(); return; }
   $('vName').textContent = v.rel || v.file;
   const meta = []; if (v.scene) meta.push('Sc ' + v.scene); if (v.take) meta.push('Tk ' + v.take);
-  meta.push(v.tc); if (v.note) meta.push('„' + v.note + '“'); $('vMeta').textContent = meta.join(' · ');
+  meta.push(v.tc); if (v.note) meta.push('“' + v.note + '”'); $('vMeta').textContent = meta.join(' · ');
   const dur = v.dur || 1, step = [5, 10, 15, 30, 60, 120, 300, 600, 900, 1800].find((s) => dur / s <= 8) || 3600;
   for (let s = 0; s < dur; s += step) { const sp = document.createElement('span'); sp.style.left = (s / dur * 100) + '%';
     sp.textContent = s >= 3600 ? hms(s) : `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, '0')}`; $('ruler').appendChild(sp); }
@@ -378,7 +378,7 @@ function renderView() {
   const avail = lanesEl.clientHeight || 300, lh = Math.max(56, Math.min(150, Math.floor(avail / Math.max(1, v.lanes.length))));
   v.lanes.forEach((ln, i) => { const on = used.has(i), cls = v.lanes.some((l) => !/^Track \d+$/.test(l.name)) ? classify(ln.name) : 'keep';
     const lane = document.createElement('div'); lane.className = 'lane' + (on ? '' : ' off'); lane.style.height = lh + 'px';
-    const note = on ? ['verwendet', 'var(--ok)'] : cls === 'drop' ? ['gelöscht', 'var(--err)'] : ['unbekannt', 'var(--warn)'];
+    const note = on ? ['used', 'var(--ok)'] : cls === 'drop' ? ['dropped', 'var(--err)'] : ['unknown', 'var(--warn)'];
     lane.innerHTML = `<div class="h"><input type="checkbox" ${on ? 'checked' : ''} aria-label="${esc(ln.name)} verwenden">
       <div class="nm"><b title="${esc(ln.name)}">${esc(ln.name)}</b><span style="color:${note[1]}">${note[0]}</span></div></div><canvas></canvas>`;
     lane.querySelector('input').addEventListener('change', () => toggleTrack(ln.name));
@@ -388,9 +388,9 @@ function renderView() {
       const t = document.createElement('span'); t.style.left = (s / dur * 100) + '%'; t.style.background = catColor(id); t.textContent = id; $('tags').appendChild(t); });
   }
   if (!v.analysed) { const h = document.createElement('div'); h.className = 'hint';
-    h.textContent = 'Noch nicht analysiert. „Vorschau analysieren“ zeigt, was geschnitten wird und welche FX bleiben.'; lanesEl.appendChild(h); }
+    h.textContent = 'Not analyzed yet. “Analyze preview” shows what gets cut and which FX stay.'; lanesEl.appendChild(h); }
   else if (!v.keep.length) { const h = document.createElement('div'); h.className = 'hint'; h.style.color = 'var(--err)';
-    h.textContent = 'Nichts Brauchbares: nur Dialog, zu kurz oder keine verwendete Spur.'; lanesEl.appendChild(h); }
+    h.textContent = 'Nothing usable: dialogue only, too short or no track in use.'; lanesEl.appendChild(h); }
   renderOuts();
 }
 function drawLane(cv, ln, v, on, lh) {
@@ -414,27 +414,27 @@ function drawLane(cv, ln, v, on, lh) {
 }
 function renderOuts() {
   const o = S.sel ? S.outputs[S.sel] : null, el = $('outs'), f = S.sel ? S.byRel[S.sel] : null;
-  let html = '<span class="ttl">ERGEBNIS</span>';
-  if (o && o.length) html += o.map((x) => `<div class="o"><i style="background:${catColor(x.catid)}"></i><span class="nm" title="${esc(x.dir + '/' + x.name)}">${esc(x.name)}</span><span class="i">${x.dur} s · ${x.markers} Regionen</span></div>`).join('');
-  else if (f && f.status === 'ok') html += `<span style="color:var(--dim)">${f.count} File${f.count === 1 ? '' : 's'} geschrieben (in einem früheren Lauf)</span>`;
-  else if (f && f.status === 'running') html += '<span style="color:var(--blue)">wird bearbeitet …</span>';
+  let html = '<span class="ttl">OUTPUT</span>';
+  if (o && o.length) html += o.map((x) => `<div class="o"><i style="background:${catColor(x.catid)}"></i><span class="nm" title="${esc(x.dir + '/' + x.name)}">${esc(x.name)}</span><span class="i">${x.dur} s · ${x.markers} regions</span></div>`).join('');
+  else if (f && f.status === 'ok') html += `<span style="color:var(--dim)">${f.count} file${f.count === 1 ? '' : 's'} written (in an earlier run)</span>`;
+  else if (f && f.status === 'running') html += '<span style="color:var(--blue)">processing …</span>';
   else if (f && ST[f.status] && f.status !== 'open') html += `<span style="color:${ST[f.status][1]}">${ST[f.status][0]}</span>`;
   else html += '<span style="color:var(--dim)">–</span>';
   el.innerHTML = html;
 }
 function renderAll() { renderHead(); renderList(); renderView(); }
 
-/* ---------- Aktionen ---------- */
+/* ---------- actions ---------- */
 async function setSource(path) {
   if (!path) return; S.src = path; S.sel = null; S.view = null; S.outputs = {};
   S.filter = await api.project_filter(path); syncFilterInputs();
-  $('iMsg').textContent = 'Lese Header …'; await loadFiles(); persist(); }
+  $('iMsg').textContent = 'Reading headers …'; await loadFiles(); persist(); }
 async function loadFiles() {
   if (!S.src) { S.files = []; S.byRel = {}; renderAll(); return; }
   const r = await api.list_files(S.src, S.dst);
   if (!r.ok) { toast(r.msg, true); return; }
   S.files = r.files; S.byRel = {}; S.files.forEach((f) => S.byRel[f.rel] = f); S.sr = r.sr; S.bits = r.bits; S.srcName = r.name;
-  $('pName').textContent = '· ' + r.name; $('iMsg').textContent = `${r.files.length} Takes geladen`;
+  $('pName').textContent = '· ' + r.name; $('iMsg').textContent = `${r.files.length} takes loaded`;
   renderAll(); if (!S.sel && S.files.length) select(S.files[0].rel); }
 async function select(rel) {
   S.sel = rel; if (S.running) { S.follow = false; $('followBtn').style.display = ''; }
@@ -442,13 +442,13 @@ async function select(rel) {
   $('iFile').textContent = rel; renderHead();
   readOpts(); S.view = await api.preview(S.src, rel, S.filter); renderView(); }
 async function analyse() {
-  if (!S.sel || S.running) return; readOpts(); $('anaBtn').disabled = true; $('iMsg').textContent = 'Analysiere ' + S.sel + ' …';
+  if (!S.sel || S.running) return; readOpts(); $('anaBtn').disabled = true; $('iMsg').textContent = 'Analyzing ' + S.sel + ' …';
   const v = await api.analyse_preview(S.src, S.sel, S.filter, S.opts); $('anaBtn').disabled = false;
   if (v && v.error) { toast(v.error, true); return; }
   S.view = v; renderView(); const cats = [...new Set(v.fx.map((f) => f[2]))];
-  $('iMsg').textContent = `Vorschau: ${v.fx.length} Regionen, ${v.keep.reduce((a, [s, e]) => a + e - s, 0).toFixed(0)} s von ${v.dur.toFixed(0)} s bleiben` + (S.opts.group !== false && cats.length ? ` → ${cats.length} Sausage-File${cats.length > 1 ? 's' : ''}: ${cats.join(', ')}` : ''); }
+  $('iMsg').textContent = `Preview: ${v.fx.length} regions, ${v.keep.reduce((a, [s, e]) => a + e - s, 0).toFixed(0)} s of ${v.dur.toFixed(0)} s stay` + (S.opts.group !== false && cats.length ? ` → ${cats.length} sausage file${cats.length > 1 ? 's' : ''}: ${cats.join(', ')}` : ''); }
 async function runStop() {
-  if (S.running) { await api.stop(); $('runBtn').textContent = 'Stoppe …'; $('iMsg').textContent = 'Stoppe nach diesem Take …'; return; }
+  if (S.running) { await api.stop(); $('runBtn').textContent = 'Stopping …'; $('iMsg').textContent = 'Stopping after this take …'; return; }
   readOpts(); const r = await api.start(S.src, S.dst, S.opts, S.filter, null);
   if (!r.ok) { toast(r.msg, true); return; }
   S.running = true; S.follow = true; $('followBtn').style.display = 'none'; renderHead(); }
@@ -459,16 +459,16 @@ async function poll() {
   try {
     const p = await api.poll(S.seq, S.viewSeq); S.seq = p.seq;
     for (const e of p.events) { const d = e.data;
-      if (e.kind === 'log') { $('iMsg').textContent = String(d).split('\n')[0]; if (String(d).startsWith('FEHLER')) toast(d, true); }
+      if (e.kind === 'log') { $('iMsg').textContent = String(d).split('\n')[0]; if (String(d).startsWith('ERROR')) toast(d, true); }
       else if (e.kind === 'start' && S.byRel[d.rel]) { S.byRel[d.rel].status = 'running'; updateRow(d.rel);
         if (S.follow) { S.sel = d.rel; $('iFile').textContent = d.rel; document.querySelectorAll('.frow').forEach((x) => x.classList.toggle('sel', x.dataset.rel === d.rel));
           const el = document.querySelector(`.frow[data-rel="${CSS.escape(d.rel)}"]`); if (el) el.scrollIntoView({ block: 'nearest' }); } }
       else if (e.kind === 'done' && S.byRel[d.rel]) { const f = S.byRel[d.rel]; f.status = d.status; f.count = d.outputs.length;
         S.outputs[d.rel] = d.outputs; updateRow(d.rel); if (d.rel === S.sel) renderOuts(); }
       else if (e.kind === 'bundle_file') { (S.bundles = S.bundles || []).push(d); }
-      else if (e.kind === 'bundle_done') { toast(`Projekt-Sausages: ${d.files} Files aus ${d.regions} Regionen – Ordner „Projekt-Sausages“ im Ziel.`); }
+      else if (e.kind === 'bundle_done') { toast(`Project sausages: ${d.files} files from ${d.regions} regions – folder “Project Sausages” in the destination.`); }
       else if (e.kind === 'stopped') { S.running = false; $('eta').textContent = '--:--:--';
-        if (!d.bundle) toast(d.stopped ? 'Gestoppt. Beim nächsten Start geht es hier weiter.' : 'Fertig.'); renderHead(); renderList(); }
+        if (!d.bundle) toast(d.stopped ? 'Stopped. The next start picks up here.' : 'Done.'); renderHead(); renderList(); }
     }
     if (p.view && S.follow) { S.view = p.view; renderView(); }
     S.viewSeq = p.view_seq;
@@ -476,29 +476,29 @@ async function poll() {
     if (p.total) { $('iCount').textContent = `${p.done} / ${p.total}`; $('progBar').style.width = (p.done / p.total * 100) + '%'; }
     if (S.running !== p.running && !p.running) { S.running = false; renderHead(); }
     renderHead();
-  } catch (err) { /* Fenster wird gerade geschlossen */ }
+  } catch (err) { /* window is closing */ }
   setTimeout(poll, S.running ? 400 : 1200);
 }
 
-/* ---------- Spurfilter-Panel ---------- */
+/* ---------- track filter panel ---------- */
 async function scan() {
-  if (!S.src) { toast('Bitte zuerst einen Quellordner wählen.', true); return; }
-  readOpts(); $('scanInfo').textContent = 'scanne …'; const r = await api.scan_tracks(S.src, S.filter); S.scanRows = r.rows;
-  $('scanInfo').textContent = `${r.files} Files · ${r.rows.length} Spurnamen`; renderScan(); }
+  if (!S.src) { toast('Please choose a source folder first.', true); return; }
+  readOpts(); $('scanInfo').textContent = 'scanning …'; const r = await api.scan_tracks(S.src, S.filter); S.scanRows = r.rows;
+  $('scanInfo').textContent = `${r.files} files · ${r.rows.length} track names`; renderScan(); }
 function renderScan() {
   const rows = S.scanRows || []; if (!rows.length) return;
-  const lab = { keep: ['✓ VERWENDEN', 'var(--ok)'], drop: ['✗ LÖSCHEN', 'var(--err)'], unknown: ['? UNBEKANNT', 'var(--warn)'] };
+  const lab = { keep: ['✓ USE', 'var(--ok)'], drop: ['✗ DROP', 'var(--err)'], unknown: ['? UNKNOWN', 'var(--warn)'] };
   $('trows').innerHTML = rows.map((r) => { const c = r.name.startsWith('(') ? 'keep' : classify(r.name);
     return `<div class="trow" data-n="${esc(r.name)}"><span class="c" style="color:${lab[c][1]}">${lab[c][0]}</span><span class="nm">${esc(r.name)}</span><span class="k">${r.count}×</span></div>`; }).join('');
 }
 
-/* ---------- Verdrahtung ---------- */
+/* ---------- wiring ---------- */
 function wire() {
   $('srcChip').addEventListener('click', async (e) => { if (e.target.id === 'srcX') { S.src = ''; S.files = []; S.view = null; S.sel = null; renderAll(); persist(); return; }
-    const p = await api.pick_folder('Quelle'); if (p) setSource(p); });
-  $('dstChip').addEventListener('click', async () => { const p = await api.pick_folder('Ziel'); if (p) { S.dst = p; persist(); loadFiles(); } });
+    const p = await api.pick_folder('Source'); if (p) setSource(p); });
+  $('dstChip').addEventListener('click', async () => { const p = await api.pick_folder('Destination'); if (p) { S.dst = p; persist(); loadFiles(); } });
   document.querySelectorAll('#fmtSeg button').forEach((b) => b.addEventListener('click', () => {
-    if (b.dataset.v === 'wavpack' && !S.wavpack) toast('WavPack ist nicht installiert. Im Terminal: brew install wavpack', true);
+    if (b.dataset.v === 'wavpack' && !S.wavpack) toast('WavPack is missing from this build.', true);
     S.opts.fmt = b.dataset.v; renderHead(); persist(); }));
   ['minS', 'maxS', 'gapS', 'creator'].forEach((id) => $(id).addEventListener('change', () => { readOpts(); persist(); }));
   ['test', 'sortUcs', 'split', 'group', 'wild', 'bundle'].forEach((id) => $(id).addEventListener('change', () => { readOpts(); persist(); renderHead(); }));
@@ -513,7 +513,7 @@ function wire() {
   $('runBtn').addEventListener('click', runStop);
   $('bundleBtn').addEventListener('click', async () => { $('optMenu').classList.remove('open'); readOpts();
     const r = await api.bundle(S.dst, S.opts); if (!r.ok) { toast(r.msg, true); return; }
-    S.running = true; S.bundles = []; $('iMsg').textContent = 'Baue Projekt-Sausages …'; renderHead(); });
+    S.running = true; S.bundles = []; $('iMsg').textContent = 'Building project sausages …'; renderHead(); });
   $('anaBtn').addEventListener('click', analyse);
   $('followBtn').addEventListener('click', () => { S.follow = true; $('followBtn').style.display = 'none'; S.viewSeq = 0; });
   $('fltBtn').addEventListener('click', () => { $('panel').classList.toggle('open'); if ($('panel').classList.contains('open') && !S.scanRows && S.src) scan(); });

@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<installer-gui-script minSpecVersion="2">
+    <title>Separator – Dialogue Out, Sound Effects In</title>
+    <organization>com.dmajorsound</organization>
+    <background file="background.tiff" alignment="bottomleft" scaling="none"/>
+    <background-darkAqua file="background-darkAqua.tiff" alignment="bottomleft" scaling="none"/>
+    <welcome file="welcome.html" mime-type="text/html"/>
+    <options customize="never" require-scripts="false" hostArchitectures="arm64"/>
+    <domains enable_localSystem="true"/>
+    <choices-outline>
+        <line choice="default"/>
+    </choices-outline>
+    <choice id="default" title="Separator">
+        <pkg-ref id="com.dmajorsound.separator"/>
+    </choice>
+    <pkg-ref id="com.dmajorsound.separator" version="VERSION" onConclusion="none">separator-component.pkg</pkg-ref>
+</installer-gui-script>

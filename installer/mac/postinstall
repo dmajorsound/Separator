@@ -1,0 +1,4 @@
+#!/bin/sh
+# Separator installer: the app was placed in /Applications; remove the quarantine flag so it opens directly.
+xattr -dr com.apple.quarantine /Applications/Separator.app 2>/dev/null
+exit 0

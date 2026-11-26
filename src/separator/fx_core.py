@@ -129,7 +129,7 @@ def read_wav_info(path):
     with open(path, "rb") as f:
         riff, _, wave = struct.unpack("<4sI4s", f.read(12))
         if riff not in (b"RIFF", b"RF64", b"BW64") or wave != b"WAVE":
-            raise ValueError("kein WAV")
+            raise ValueError("not a WAV file")
         ds64_data = None
         pos = 12
         while pos + 8 <= size:
@@ -160,12 +160,12 @@ def read_wav_info(path):
             pos += 8 + csz + (csz & 1)
 
     if info.fmt_bytes is None or info.data_off is None:
-        raise ValueError("fmt- oder data-Chunk fehlt")
+        raise ValueError("fmt or data chunk missing")
     code, ch, sr, _, block, bits = struct.unpack("<HHIIHH", info.fmt_bytes[:16])
     if code == 0xFFFE and len(info.fmt_bytes) >= 26:
         code = struct.unpack("<H", info.fmt_bytes[24:26])[0]
     if code not in (1, 3):
-        raise ValueError(f"Format {code} wird nicht unterstuetzt")
+        raise ValueError(f"format {code} not supported")
     info.is_float = code == 3
     info.channels, info.sr, info.block, info.bits = ch, sr, block, bits
     info.bps = block // ch
@@ -193,7 +193,7 @@ def decode(b, bps, channels, is_float):
     elif bps == 1:
         a = (b.astype(np.float64) - 128.0) / 128.0
     else:
-        raise ValueError("Bittiefe nicht unterstuetzt")
+        raise ValueError("bit depth not supported")
     return a.reshape(-1, channels)
 
 
@@ -215,7 +215,7 @@ def encode(a, bps, is_float):
         return np.clip(np.round(a * 2147483648), -2147483648, 2147483647).astype("<i4").view(np.uint8)
     if bps == 1:
         return np.clip(np.round(a * 128 + 128), 0, 255).astype(np.uint8)
-    raise ValueError("Bittiefe nicht unterstuetzt")
+    raise ValueError("bit depth not supported")
 
 
 def frames_bytes(raw, info, f0, f1, chans):
@@ -341,9 +341,9 @@ def scan_tracks(src, limit=0):
         except Exception:
             continue
         if not any(names):
-            names = ["(ohne Namen)"]
+            names = ["(no names)"]
         for n in names:
-            n = (n or "(leer)").strip()
+            n = (n or "(empty)").strip()
             counts[n] = counts.get(n, 0) + 1
     return len(files), sorted(counts.items(), key=lambda kv: -kv[1])
 
@@ -566,12 +566,12 @@ class Analyzer:
         import torch
         self.torch = torch
         torch.set_num_threads(os.cpu_count() or 4)
-        log("Lade Spracherkennung (Silero VAD) …")
+        log("Loading speech detection (Silero VAD) …")
         from silero_vad import load_silero_vad, get_speech_timestamps
         self.vad_model = load_silero_vad()
         self._gst = get_speech_timestamps
 
-        log(f"Lade Geräuscherkennung ({CLAP_MODEL}) …")
+        log(f"Loading sound recognition ({CLAP_MODEL}) …")
         from transformers import ClapModel, ClapProcessor
         self.model = ClapModel.from_pretrained(CLAP_MODEL).eval()
         self.proc = ClapProcessor.from_pretrained(CLAP_MODEL)
@@ -588,7 +588,7 @@ class Analyzer:
         self.model.to(self.device)
         self.text = self.text.to(self.device)
         self.log = log
-        log(f"Bereit (Rechner: {'Apple-Grafikchip' if self.device == 'mps' else 'CPU'}).")
+        log(f"Ready (running on {'Apple GPU' if self.device == 'mps' else 'CPU'}).")
 
     @staticmethod
     def _emb(x):
@@ -635,7 +635,7 @@ class Analyzer:
             except Exception:
                 if self.device == "cpu":
                     raise
-                self.log("  (Grafikchip nicht kompatibel, rechne auf CPU weiter)")
+                self.log("  (GPU not compatible, continuing on CPU)")
                 self.device = "cpu"
                 self.model.to("cpu")
                 self.text = self.text.cpu()
@@ -823,7 +823,7 @@ def to_wavpack(wav_path, tags):
     cmd += [wav_path, "-o", wv]
     r = subprocess.run(cmd, capture_output=True, text=True)
     if r.returncode != 0 or not os.path.exists(wv):
-        raise RuntimeError("WavPack fehlgeschlagen: " + (r.stderr or "").strip()[-200:])
+        raise RuntimeError("WavPack failed: " + (r.stderr or "").strip()[-200:])
     os.remove(wav_path)
     return wv
 
@@ -908,7 +908,7 @@ def process(path, dst, rel_dir, an, dry, log, rel, creator, taken, view=None):
             raw0 = np.memmap(path, dtype=np.uint8, mode="r", offset=info.data_off,
                              shape=(info.n_frames * info.block,))
             view(file_view(path, info, meta, raw0, [], rel))
-        return "notrack", [], "keine passende Spur"
+        return "notrack", [], "no matching track"
     kept_names = [meta["tracks"][i] or f"Track {i + 1}" for i in chans] if any(meta["tracks"]) else []
 
     raw = np.memmap(path, dtype=np.uint8, mode="r", offset=info.data_off,
@@ -919,7 +919,7 @@ def process(path, dst, rel_dir, an, dry, log, rel, creator, taken, view=None):
     if view:
         view(file_view(path, info, meta, raw, parts, rel))
     if not parts:
-        return "dialog", [], "nur Dialog oder zu kurz"
+        return "dialog", [], "dialogue only or too short"
 
     sr = info.sr
     written = []
@@ -1029,7 +1029,7 @@ def process(path, dst, rel_dir, an, dry, log, rel, creator, taken, view=None):
           written.append({"name": os.path.basename(out_path), "dir": os.path.relpath(out_dir, dst),
                           "catid": catid, "dur": round(out_pos / sr, 1), "markers": len(markers)})
 
-    tracks_txt = f" · Spuren: {', '.join(kept_names)}" if kept_names else ""
+    tracks_txt = f" · tracks: {', '.join(kept_names)}" if kept_names else ""
     msg = f"({dur:.0f}s){tracks_txt}\n    → " + "\n    → ".join(
         f"{o['name']} ({o['dur']:.0f}s, {o['markers']} Marker)" for o in written)
     return "ok", written, msg
@@ -1040,7 +1040,7 @@ def process(path, dst, rel_dir, an, dry, log, rel, creator, taken, view=None):
 # ============================================================
 
 BUNDLE_AFTER_RUN = True        # nach jedem Lauf automatisch buendeln (in der App einstellbar)
-BUNDLE_FOLDER    = "Projekt-Sausages"
+BUNDLE_FOLDER    = "Project Sausages"
 REGIONS_FILE     = ".separator_regionen.jsonl"
 
 # Feinere Beschreibungen je Familie: (CatID, Category, SubCategory, FXName, Beschreibung fuer die KI)
@@ -1241,7 +1241,7 @@ def _write_stream(path, sr, nch, bps, is_float, pieces, gap, head_extra, tail):
         f.write(tail)
         end = f.tell()
         if end - 8 > 0xFFFFFFFF:
-            raise RuntimeError("Projekt-Sausage zu gross (>4 GB) – bitte Max-Länge setzen")
+            raise RuntimeError("project sausage too large (>4 GB) – please set a maximum length")
         f.seek(4)
         f.write(struct.pack("<I", end - 8))
         f.seek(data_pos + 4)
@@ -1255,7 +1255,7 @@ def bundle_project(dst, an, creator=None, log=print, on_event=None):
     creator = creator or CREATOR_ID
     regs = load_regions(dst)
     if not regs:
-        log("Projekt-Sausages: noch keine Regionen gemerkt.")
+        log("Project sausages: no regions recorded yet.")
         return []
     out_root = os.path.join(dst, BUNDLE_FOLDER)
     # alte Projekt-Sausages ersetzen
@@ -1347,16 +1347,16 @@ def bundle_project(dst, an, creator=None, log=print, on_event=None):
             if OUTPUT_FORMAT == "wavpack" and wavpack_bin():
                 path = to_wavpack(path, {"Title": fx_name, "Comment": desc, "Genre": f"{cat}-{sub}", "Artist": creator})
             written.append(path)
-            log(f"Projekt-Sausage: {os.path.relpath(path, dst)} ({len(part)} Regionen, {pos / target_sr:.0f}s)")
+            log(f"Project sausage: {os.path.relpath(path, dst)} ({len(part)} regions, {pos / target_sr:.0f}s)")
             ev("bundle_file", {"name": os.path.basename(path), "dir": os.path.relpath(os.path.dirname(path), dst),
                                "catid": cid, "regions": len(part), "dur": round(pos / target_sr, 1)})
     os.makedirs(out_root, exist_ok=True)
     json.dump(written, open(man, "w", encoding="utf-8"), ensure_ascii=False)
-    with open(os.path.join(out_root, "projekt_sausages.csv"), "w", newline="", encoding="utf-8") as f:
+    with open(os.path.join(out_root, "project_sausages.csv"), "w", newline="", encoding="utf-8") as f:
         w = csv.writer(f, delimiter=";")
-        w.writerow(["Projekt-Sausage", "Region", "Quelle", "Timecode Original", "Dauer (s)", "CatID Take", "CatID Sausage"])
+        w.writerow(["Project sausage", "Region", "Source", "Original timecode", "Duration (s)", "CatID take", "CatID sausage"])
         w.writerows(rows)
-    log(f"Projekt-Sausages fertig: {len(written)} Files aus {len(regs)} Regionen.")
+    log(f"Project sausages done: {len(written)} files from {len(regs)} regions.")
     ev("bundle_done", {"files": len(written), "regions": len(regs)})
     return written
 
@@ -1369,7 +1369,9 @@ def bundle_project(dst, an, creator=None, log=print, on_event=None):
 def read_done(dst):
     """Fertig-Liste: {rel: (status, anzahl)} – auch alte Zeilen ohne Status"""
     out = {}
-    p = os.path.join(dst, ".fx_fertig.txt")
+    p = os.path.join(dst, ".separator_done.txt")
+    if not os.path.exists(p):
+        p = os.path.join(dst, ".fx_fertig.txt")   # aus frueheren Versionen
     if os.path.exists(p):
         for line in open(p, encoding="utf-8").read().splitlines():
             f = line.split("\t")
@@ -1418,7 +1420,7 @@ def run(src, dst, creator=CREATOR_ID, limit=0, dry=False, log=print,
     if fmt:
         OUTPUT_FORMAT = fmt
     if OUTPUT_FORMAT == "wavpack" and not wavpack_bin():
-        log("FEHLER: WavPack ist nicht installiert. Im Terminal: brew install wavpack – oder WAV wählen.")
+        log("ERROR: WavPack is not available – please choose WAV.")
         return
     if min_s is not None:
         MIN_FILE_S = max(MIN_SEGMENT_S, float(min_s))
@@ -1434,33 +1436,33 @@ def run(src, dst, creator=CREATOR_ID, limit=0, dry=False, log=print,
         files = [f for f in files if os.path.relpath(f, src) in wanted]
     if limit:
         files = files[:limit]
-    log(f"{len(files)} WAV-Files gefunden. Spuren verwenden: {', '.join(KEEP_TRACKS) or '–'} · "
-        f"löschen: {', '.join(IGNORE_TRACKS) or '–'} · unbekannte: {UNKNOWN_TRACKS}"
-        + (" · Einzelspuren" if SPLIT_TRACKS else "") + (" · UCS-Ordner" if SORT_BY_CATEGORY else ""))
+    log(f"{len(files)} WAV files found. Use tracks: {', '.join(KEEP_TRACKS) or '–'} · "
+        f"drop: {', '.join(IGNORE_TRACKS) or '–'} · unknown: {UNKNOWN_TRACKS}"
+        + (" · single tracks" if SPLIT_TRACKS else "") + (" · UCS folders" if SORT_BY_CATEGORY else ""))
     if not files:
         return
     an = analyzer or Analyzer(log)
     os.makedirs(dst, exist_ok=True)
-    done_path = os.path.join(dst, ".fx_fertig.txt")
+    done_path = os.path.join(dst, ".separator_done.txt")
     done = set(read_done(dst))
-    log_path = os.path.join(dst, "fx_marker_liste.csv")
+    log_path = os.path.join(dst, "fx_marker_list.csv")
     new_log = not os.path.exists(log_path)
     taken = set()
     with open(log_path, "a", newline="", encoding="utf-8") as lf, \
             open(done_path, "a", encoding="utf-8") as df:
         w = csv.writer(lf, delimiter=";")
         if new_log:
-            w.writerow(["Quelle", "Neues File", "UCS CatID", "Kategorie DE", "Sicherheit", "Pos. Original (s)",
+            w.writerow(["Source", "New file", "UCS CatID", "German term", "Confidence", "Pos. original (s)",
                         "Timecode Original", "Pos. neues File (s)", "Dauer (s)"])
         t0 = time.time()
         for i, path in enumerate(files, 1):
             if stop():
-                log("Gestoppt. Beim nächsten Start geht es hier weiter.")
+                log("Stopped. The next start picks up here.")
                 break
             progress(i - 1, len(files))
             rel = os.path.relpath(path, src)
             if rel in done and not dry:
-                log(f"[{i}/{len(files)}] {rel}: schon erledigt")
+                log(f"[{i}/{len(files)}] {rel}: already done")
                 ev("skip", {"i": i, "n": len(files), "rel": rel})
                 continue
             t = time.time()
@@ -1472,7 +1474,7 @@ def run(src, dst, creator=CREATOR_ID, limit=0, dry=False, log=print,
                     df.write(f"{rel}\t{status}\t{len(outs)}\n")
                     df.flush()
             except Exception as ex:
-                status, outs, msg = "error", [], f"FEHLER: {ex}"
+                status, outs, msg = "error", [], f"ERROR: {ex}"
             lf.flush()
             log(f"[{i}/{len(files)}] {rel} {msg} ({time.time() - t:.0f}s)")
             ev("done", {"i": i, "n": len(files), "rel": rel, "status": status, "outputs": outs,
@@ -1483,5 +1485,5 @@ def run(src, dst, creator=CREATOR_ID, limit=0, dry=False, log=print,
         try:
             bundle_project(dst, an, creator, log, ev)
         except Exception as ex:
-            log(f"FEHLER Projekt-Sausages: {ex}")
-        log(f"Fertig in {(time.time() - t0) / 60:.1f} min. Liste: {log_path}")
+            log(f"ERROR project sausages: {ex}")
+        log(f"Done in {(time.time() - t0) / 60:.1f} min. List: {log_path}")

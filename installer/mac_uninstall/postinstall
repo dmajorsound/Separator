@@ -1,0 +1,9 @@
+#!/bin/sh
+# Separator uninstaller: removes the app and its settings. Audio files and FX libraries stay untouched.
+USER_NAME=$(stat -f%Su /dev/console)
+USER_HOME=$(dscl . -read "/Users/$USER_NAME" NFSHomeDirectory | awk '{print $2}')
+rm -rf /Applications/Separator.app
+rm -rf "$USER_HOME/Library/Application Support/Separator"
+pkgutil --forget com.dmajorsound.separator >/dev/null 2>&1
+pkgutil --forget com.dmajorsound.separator.uninstall >/dev/null 2>&1
+exit 0
