@@ -34,6 +34,12 @@ input[type=radio]{accent-color:var(--blue-strong);margin:0}
 .app{display:flex;flex-direction:column;height:100%;padding:12px 18px 8px;gap:10px}
 
 /* Kopf */
+.tabsbar{display:flex;align-items:flex-end;gap:6px;margin:-4px 0 -11px;padding-left:2px;position:relative;z-index:1}
+.tabsbar button{height:32px;padding:0 18px;border-radius:9px 9px 0 0;background:var(--panel2);border:1px solid var(--line);border-bottom:0;
+  color:var(--dim);font-size:13px;font-weight:700;letter-spacing:.6px}
+.tabsbar button:hover{background:var(--btn);color:var(--text)}
+.tabsbar button.on{background:var(--panel);color:var(--text);border-color:var(--blue);border-width:2px;border-bottom:0;height:35px}
+.tabsbar .tabhint{margin-left:12px;font-size:12px;color:var(--dim);align-self:center}
 .head > *{flex-shrink:0}
 .head .chip,.head .stats{flex-shrink:1;min-width:0}
 .head .stats span{overflow:hidden;text-overflow:ellipsis}
@@ -55,6 +61,8 @@ input[type=radio]{accent-color:var(--blue-strong);margin:0}
 .seg button{height:24px;padding:0 10px;font-size:12px;background:transparent;font-weight:500;border-radius:5px}
 .seg button.on{background:var(--blue-strong);color:#fff;font-weight:600}
 .lenbox{display:flex;flex-direction:column;gap:3px;font-size:11px;color:var(--dim);white-space:nowrap;align-items:flex-end}
+.lenbox.off,.menu input:disabled+*{opacity:.4}
+.lenbox.off input{pointer-events:none}
 .lenbox input{width:44px;height:21px;text-align:center;font-family:"SF Mono",Menlo,monospace;font-size:11px;padding:0 3px;border-radius:5px}
 .tc{display:flex;flex-direction:column;align-items:flex-end;line-height:1.05;margin:0 2px}
 .tc .v{font-family:"SF Mono",Menlo,monospace;font-size:23px;font-weight:600;color:var(--blue)}
@@ -217,6 +225,11 @@ select{font:inherit;color:var(--text);background:var(--input);border:1px solid v
     <button class="primary" id="runBtn">Start</button>
   </div>
 
+  <div class="tabsbar" id="modeTop" role="tablist">
+    <button role="tab" data-v="library" title="UCS-named sound effect files, sausages per category, project sausages">FX LIBRARY</button>
+    <button role="tab" data-v="dx" title="Same folders and file names, all tracks kept, only dialogue and slates cut">DX DELETE</button>
+    <span class="tabhint" id="tabHint"></span>
+  </div>
   <div class="main">
     <div class="box list">
       <div class="bar">
@@ -286,6 +299,7 @@ select{font:inherit;color:var(--text);background:var(--input);border:1px solid v
     <li><b>Analyze preview:</b> shows what gets cut and what stays for the selected take, without writing anything. Double-click a take does the same.</li>
     <li><b>Length:</b> shorter results are dropped, longer ones are split at sound boundaries (0 = unlimited). <b>Gap:</b> silence between sounds in a sausage file.</li>
     <li><b>Options:</b> Creator ID, test run, sausage files, wild tracks, project sausages, UCS folders, single tracks, light/dark.</li>
+    <li><b>FX Library / DX Delete:</b> FX Library writes UCS-named sound effect files. DX Delete keeps every file where it is, with its name and all tracks, and only cuts the dialogue and slates; markers show what is left. Both keep the original metadata.</li>
     <li><b>Selected takes only:</b> tick takes in the list (or Cmd-click, Shift-click for a range). Start then converts only those, also takes that were done before.</li>
     <li><b>Min. level</b> (Options): parts quieter than this are cut and never written.</li>
     <li><b>Stop:</b> after the current take. The next start picks up where it left off.</li>
@@ -359,6 +373,13 @@ function renderHead() {
   $('st1').textContent = n ? `${n} files · ${h < 10 ? h.toFixed(1) : Math.round(h)} h` : 'No source';
   $('st2').innerHTML = n ? `${(S.sr / 1000) || '–'} kHz · ${S.bits || '–'} bit · <span class="g">${fin} done</span>` : '';
   document.querySelectorAll('#fmtSeg button').forEach((b) => b.classList.toggle('on', b.dataset.v === (S.opts.fmt || 'wav')));
+  const dx = S.opts.mode === 'dx';
+  document.querySelectorAll('#modeTop button').forEach((b) => b.classList.toggle('on', b.dataset.v === (S.opts.mode || 'library')));
+  document.querySelector('.lenbox').style.display = dx ? 'none' : '';
+  $('tabHint').textContent = dx ? 'Same folders and file names, all tracks kept – only dialogue and slates are cut.' : 'UCS-named FX files, one sausage per category and take, project sausages.';
+  ['group', 'bundle', 'bundleBtn', 'sortUcs', 'split', 'minLevel', 'creator'].forEach((id) => { const el = $(id); if (el) el.disabled = dx; });
+  $('helpLine').textContent = dx ? 'DX Delete: every file keeps its folder, name and all tracks. Only dialogue and slates are cut, markers show what is left.'
+    : 'Track checkboxes and the track filter decide what goes into the FX files. Dialogue is cut, originals stay untouched.';
   $('runBtn').textContent = S.running ? 'Stop' : (S.checked.size ? `Convert ${S.checked.size} selected` : (S.opts.test ? 'Test Run' : 'Start'));
   $('anaBtn').disabled = S.running || !S.sel;
 }
@@ -411,14 +432,17 @@ function renderView() {
   const avail = lanesEl.clientHeight || 300, lh = Math.max(56, Math.min(150, Math.floor(avail / Math.max(1, v.lanes.length))));
   v.lanes.forEach((ln, i) => { const on = used.has(i), cls = v.lanes.some((l) => !/^Track \d+$/.test(l.name)) ? classify(ln.name) : 'keep';
     const lane = document.createElement('div'); lane.className = 'lane' + (on ? '' : ' off'); lane.style.height = lh + 'px';
-    const note = on ? ['used', 'var(--ok)'] : cls === 'drop' ? ['dropped', 'var(--err)'] : ['unknown', 'var(--warn)'];
-    lane.innerHTML = `<div class="h"><input type="checkbox" ${on ? 'checked' : ''} aria-label="${esc(ln.name)} verwenden">
+    const dxm = S.opts.mode === 'dx';
+    const note = dxm ? (on ? ['detects dialogue', 'var(--ok)'] : ['kept', 'var(--dim)'])
+      : on ? ['used', 'var(--ok)'] : cls === 'drop' ? ['dropped', 'var(--err)'] : ['unknown', 'var(--warn)'];
+    if (dxm) lane.classList.remove('off');
+    lane.innerHTML = `<div class="h"><input type="checkbox" ${on ? 'checked' : ''} aria-label="Use ${esc(ln.name)}">
       <div class="nm"><b title="${esc(ln.name)}">${esc(ln.name)}</b><span style="color:${note[1]}">${note[0]}</span></div></div><canvas></canvas>`;
     lane.querySelector('input').addEventListener('change', () => toggleTrack(ln.name));
     lane.querySelector('canvas').addEventListener('click', (e) => { const c = e.currentTarget, r = c.getBoundingClientRect();
       const sec = (e.clientX - r.left) / r.width * (v.dur || 0); PB.pos = sec; PB.rel = v.rel || v.file; showPlayhead(sec);
       if (PB.playing) playFrom(sec); });
-    lanesEl.appendChild(lane); drawLane(lane.querySelector('canvas'), ln, v, on, lh); });
+    lanesEl.appendChild(lane); drawLane(lane.querySelector('canvas'), ln, v, on || dxm, lh); });
   if (v.analysed && v.lanes.length) {
     const seen = {}; v.fx.forEach(([s, e, id]) => { if ((e - s) / dur < 0.035) return;
       const t = document.createElement('span'); t.style.left = (s / dur * 100) + '%'; t.style.background = catColor(id); t.textContent = id; $('tags').appendChild(t); });
@@ -467,7 +491,7 @@ async function setSource(path) {
   $('iMsg').textContent = 'Reading headers …'; await loadFiles(); persist(); }
 async function loadFiles() {
   if (!S.src && !S.items) { S.files = []; S.byRel = {}; renderAll(); return; }
-  const r = await api.list_files(S.src, S.dst, S.items);
+  const r = await api.list_files(S.src, S.dst, S.items, S.opts.mode || 'library');
   if (!r.ok) { toast(r.msg, true); return; }
   S.root = r.src; if (S.items) S.src = r.src;
   S.files = r.files; S.byRel = {}; S.files.forEach((f) => S.byRel[f.rel] = f);
@@ -485,7 +509,7 @@ async function analyse() {
   const v = await api.analyse_preview(S.src, S.sel, S.filter, S.opts); $('anaBtn').disabled = false;
   if (v && v.error) { toast(v.error, true); return; }
   S.view = v; renderView(); const cats = [...new Set(v.fx.map((f) => f[2]))];
-  $('iMsg').textContent = `Preview: ${v.fx.length} regions, ${v.keep.reduce((a, [s, e]) => a + e - s, 0).toFixed(0)} s of ${v.dur.toFixed(0)} s stay` + (S.opts.group !== false && cats.length ? ` → ${cats.length} sausage file${cats.length > 1 ? 's' : ''}: ${cats.join(', ')}` : ''); }
+  $('iMsg').textContent = `Preview: ${v.fx.length} regions, ${v.keep.reduce((a, [s, e]) => a + e - s, 0).toFixed(0)} s of ${v.dur.toFixed(0)} s stay` + (S.opts.mode === 'dx' ? ' → 1 file, same name and folder' : '') + (S.opts.mode !== 'dx' && S.opts.group !== false && cats.length ? ` → ${cats.length} sausage file${cats.length > 1 ? 's' : ''}: ${cats.join(', ')}` : ''); }
 async function runStop() {
   if (S.running) { await api.stop(); $('runBtn').textContent = 'Stopping …'; $('iMsg').textContent = 'Stopping after this take …'; return; }
   readOpts(); const only = S.checked.size ? [...S.checked] : null;
@@ -546,7 +570,7 @@ async function playFrom(sec) {
   const v = S.view; if (!v || v.error) return;
   readOpts();
   const segs = PB.mode === 'result' ? v.keep : null;
-  const r = await api.play(S.src, v.rel || v.file, S.filter, sec, segs, PB.mode === 'result' ? (S.opts.gap_s || 0) : 0);
+  const r = await api.play(S.src, v.rel || v.file, S.filter, sec, segs, PB.mode === 'result' && S.opts.mode !== 'dx' ? (S.opts.gap_s || 0) : 0);
   if (!r.ok) { toast(r.msg, true); PB.playing = false; setPlayIcon(false); return; }
   PB.playing = true; PB.rel = v.rel || v.file; PB.pos = r.pos; setPlayIcon(true); showPlayhead(PB.pos); pollPlay();
 }
@@ -608,6 +632,8 @@ function wire() {
   $('srcChip').addEventListener('click', async (e) => { if (e.target.id === 'srcX') { S.src = ''; S.items = null; S.files = []; S.view = null; S.sel = null; renderAll(); persist(); return; }
     const p = await api.pick_folder('Source'); if (p) setSource(p); });
   $('dstChip').addEventListener('click', async () => { const p = await api.pick_folder('Destination'); if (p) { S.dst = p; persist(); loadFiles(); } });
+  document.querySelectorAll('#modeTop button').forEach((b) => b.addEventListener('click', () => {
+    if (S.running) return; S.opts.mode = b.dataset.v; persist(); renderHead(); loadFiles(); }));
   document.querySelectorAll('#fmtSeg button').forEach((b) => b.addEventListener('click', () => {
     if (b.dataset.v === 'wavpack' && !S.wavpack) toast('WavPack is missing from this build.', true);
     S.opts.fmt = b.dataset.v; renderHead(); persist(); }));

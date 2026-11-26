@@ -28,6 +28,7 @@ WILD_CONTINUOUS = True  # Nur-Ton/AT/Wildtrack-Takes am Stueck lassen, nur Ansag
 # Woran ein Nur-Ton erkannt wird (Szene, Take, Notiz, Kommentare, iXML WILD_TRACK, Dateiname)
 WILD_PATTERNS = [r"(?i)\bnur[\s_-]?ton\b", r"(?i)\bwild[\s_-]?tracks?\b", r"(?i)\bwild\b",
                  r"\bWT\d*\b", r"\bNT\d*\b", r"\bAT\d*\b", r"(?i)\batmo[\s_-]?take\b"]
+MODE           = "library"  # "library": UCS FX files | "dx": DX Delete – same folders and names, only dialogue cut
 GROUP_BY_CAT   = True   # True = pro Take ein Sausage-File je Kategorie (in der App einstellbar)
 GAP_S          = 0.5    # Stille zwischen den Geraeuschen im Sausage-File, 0 = direkt aneinander
 UNCLASSIFIED   = ("AMBMisc", "Unclassified")  # CatID + FXName fuer unsicher erkannte Geraeusche
@@ -518,7 +519,8 @@ def new_bext(old, new_time_ref, desc, note):
         head = bytearray(602)
         struct.pack_into("<H", head, 346, 1)
         history = b""
-    head[0:256] = _ascii(desc)[:255].ljust(256, b"\0")
+    if desc is not None:
+        head[0:256] = _ascii(desc)[:255].ljust(256, b"\0")
     struct.pack_into("<Q", head, 338, new_time_ref)
     history += _ascii(note) + b"\r\n"
     return bytes(head) + history
@@ -542,6 +544,8 @@ def new_ixml(old, new_time_ref, kept, tracks, user):
         txt = re.sub(r"<TRACK_LIST>.*?</TRACK_LIST>", lambda _: tl, txt, count=1, flags=re.S)
     else:
         txt = txt.replace("</BWFXML>", tl + "</BWFXML>")
+    if user is None:                     # DX Delete: keep the recorder's own USER block
+        return txt.encode("utf-8")
     # UCS-Felder im USER-Block
     ub = "<USER>" + "".join(f"<{k}>{escape(v)}</{k}>" for k, v in user.items()) + "</USER>"
     txt = re.sub(r"<USER>.*?</USER>|<USER\s*/>", "", txt, flags=re.S)
@@ -856,7 +860,7 @@ def analyse(info, raw, an, chans):
         pieces.sort(key=lambda x: x[0])
 
     runs = []
-    cut = set(CUT_LABELS) | {"QUIET"} | (VOCAL_CATS if VOCAL_MODE == "cut" else set())
+    cut = set(CUT_LABELS) | (set() if MODE == "dx" else {"QUIET"}) | (VOCAL_CATS if VOCAL_MODE == "cut" else set())
     for s, e, l, p in pieces:
         if l in cut:
             continue
@@ -1038,6 +1042,59 @@ def build_parts(runs, group=None, gap=None):
 
 def split_parts(runs, meta=None):
     return build_parts(runs, *part_mode(meta or {}))
+
+
+def process_dx(path, dst, rel_dir, an, dry, log, rel, view=None):
+    """DX Delete: same folder and file name, all tracks kept, only dialogue (and slates) cut, markers added"""
+    info = read_wav_info(path)
+    meta = read_meta(info, path)
+    chans = select_channels(meta["tracks"])          # tracks the dialogue is detected on
+    raw = np.memmap(path, dtype=np.uint8, mode="r", offset=info.data_off,
+                    shape=(info.n_frames * info.block,))
+    if not chans:
+        chans = list(range(info.channels))
+    runs, dur = analyse(info, raw, an, chans)
+    segs = [{"start": r["start"], "end": r["end"], "events": r["events"], "cut": True} for r in runs]
+    if view:
+        view(file_view(path, info, meta, raw, [{"cat": "*", "segs": segs}] if segs else [], rel))
+    if not segs:
+        return "dialog", [], "dialogue only"
+    sr, all_ch = info.sr, list(range(info.channels))
+    frame_runs, markers, out_pos = [], [], 0
+    for i, sg in enumerate(segs):
+        s_f, e_f = int(round(sg["start"] * sr)), min(info.n_frames, int(round(sg["end"] * sr)))
+        if e_f <= s_f:
+            continue
+        frame_runs.append((s_f, e_f))
+        for j, (s, e, l, p) in enumerate(sg["events"]):
+            es = int(round(s * sr)) - s_f
+            src_tc = tc((info.time_ref + int(round(s * sr))) / sr)
+            prefix = "CUT/ " if (j == 0 and i > 0) else ""
+            label = "QUIET" if l == "QUIET" else l
+            markers.append((out_pos + max(0, es), max(0, int(round((e - s) * sr))),
+                            f"{prefix}{label} | {DE_NAMES.get(l, l)} | {src_tc}"))
+            log.writerow([rel, rel, l, DE_NAMES.get(l, l), f"{p:.2f}", f"{s:.3f}", src_tc,
+                          f"{(out_pos + es) / sr:.3f}", f"{e - s:.3f}"])
+        out_pos += e_f - s_f
+    out_dir = os.path.join(dst, rel_dir)
+    out_path = os.path.join(out_dir, os.path.basename(path))     # exactly the original file name
+    if not dry:
+        new_ref = info.time_ref + frame_runs[0][0]
+        extra = _chunk(b"bext", new_bext(info.bext, new_ref, None,
+                                         f"A=PCM,T=Separator DX Delete: dialogue removed, {len(frame_runs)} parts"))
+        if info.ixml:
+            extra += _chunk(b"iXML", new_ixml(info.ixml, new_ref, all_ch, meta["tracks"], None))
+        if info.list_info:
+            extra += list_info(info.list_info)
+        os.makedirs(out_dir, exist_ok=True)
+        write_bwf(out_path, info, all_ch, frame_runs, raw, extra, markers, 0)
+        if OUTPUT_FORMAT == "wavpack":
+            out_path = to_wavpack(out_path, {})
+    elif OUTPUT_FORMAT == "wavpack":
+        out_path = os.path.splitext(out_path)[0] + ".wv"
+    o = {"name": os.path.basename(out_path), "dir": rel_dir or ".", "catid": "DX", "dur": round(out_pos / sr, 1),
+         "markers": len(markers)}
+    return "ok", [o], f"({dur:.0f}s) → {o['name']} ({o['dur']:.0f}s, {len(markers)} markers)"
 
 
 def process(path, dst, rel_dir, an, dry, log, rel, creator, taken, view=None):
@@ -1507,10 +1564,25 @@ def bundle_project(dst, an, creator=None, log=print, on_event=None):
 # ============================================================
 
 
+DONE_NAME = {"library": ".separator_done.txt", "dx": ".separator_dx_done.txt"}
+
+
+def _read_done_file(p):
+    out = {}
+    if os.path.exists(p):
+        for line in open(p, encoding="utf-8").read().splitlines():
+            f = line.split("\t")
+            if f[0]:
+                out[f[0]] = (f[1] if len(f) > 1 else "ok", int(f[2]) if len(f) > 2 and f[2].isdigit() else 0)
+    return out
+
+
 def read_done(dst):
     """Fertig-Liste: {rel: (status, anzahl)} – auch alte Zeilen ohne Status"""
     out = {}
-    p = os.path.join(dst, ".separator_done.txt")
+    p = os.path.join(dst, DONE_NAME[MODE])
+    if MODE == "dx":
+        return _read_done_file(p)
     if not os.path.exists(p):
         p = os.path.join(dst, ".fx_fertig.txt")   # aus frueheren Versionen
     if os.path.exists(p):
@@ -1566,10 +1638,12 @@ def run(src, dst, creator=CREATOR_ID, limit=0, dry=False, log=print,
         min_s=None, max_s=None, fmt=None, sort_ucs=None, split=None,
         keep_words=None, drop_words=None, unknown=None, on_event=None, only=None,
         group_cat=None, gap_s=None, bundle=None, wild_cont=None, files=None,
-        min_level=None, vocal=None, redo=False):
+        min_level=None, vocal=None, redo=False, mode=None):
     global MIN_FILE_S, MAX_FILE_S, OUTPUT_FORMAT, SORT_BY_CATEGORY, SPLIT_TRACKS
     global KEEP_TRACKS, IGNORE_TRACKS, UNKNOWN_TRACKS, GROUP_BY_CAT, GAP_S, BUNDLE_AFTER_RUN
-    global WILD_CONTINUOUS, MIN_LEVEL_DBFS, VOCAL_MODE
+    global WILD_CONTINUOUS, MIN_LEVEL_DBFS, VOCAL_MODE, MODE
+    if mode in ("library", "dx"):
+        MODE = mode
     if min_level is not None:
         MIN_LEVEL_DBFS = float(min_level)
     if vocal in ("keep", "cut"):
@@ -1618,7 +1692,7 @@ def run(src, dst, creator=CREATOR_ID, limit=0, dry=False, log=print,
         return
     an = analyzer or Analyzer(log)
     os.makedirs(dst, exist_ok=True)
-    done_path = os.path.join(dst, ".separator_done.txt")
+    done_path = os.path.join(dst, DONE_NAME[MODE])
     done = set(read_done(dst))
     log_path = os.path.join(dst, "fx_marker_list.csv")
     new_log = not os.path.exists(log_path)
@@ -1643,8 +1717,12 @@ def run(src, dst, creator=CREATOR_ID, limit=0, dry=False, log=print,
             t = time.time()
             ev("start", {"i": i, "n": len(files), "rel": rel})
             try:
-                status, outs, msg = process(path, dst, os.path.dirname(rel), an, dry, w, rel, creator, taken,
-                                            view=lambda v: ev("view", v))
+                if MODE == "dx":
+                    status, outs, msg = process_dx(path, dst, os.path.dirname(rel), an, dry, w, rel,
+                                                   view=lambda v: ev("view", v))
+                else:
+                    status, outs, msg = process(path, dst, os.path.dirname(rel), an, dry, w, rel, creator, taken,
+                                                view=lambda v: ev("view", v))
                 if not dry:
                     df.write(f"{rel}\t{status}\t{len(outs)}\n")
                     df.flush()
@@ -1656,7 +1734,7 @@ def run(src, dst, creator=CREATOR_ID, limit=0, dry=False, log=print,
                         "msg": msg, "secs": round(time.time() - t, 1)})
         progress(len(files), len(files))
         ev("finished", {"log": log_path})
-    if BUNDLE_AFTER_RUN and not dry and not stop():
+    if BUNDLE_AFTER_RUN and MODE != "dx" and not dry and not stop():
         try:
             bundle_project(dst, an, creator, log, ev)
         except Exception as ex:

@@ -92,6 +92,7 @@ class Api:
                 "min_s": s.get("min_s", fx_core.MIN_FILE_S), "max_s": s.get("max_s", fx_core.MAX_FILE_S),
                 "test": s.get("test", True), "theme": s.get("theme", "dark"),
                 "audio_device": s.get("audio_device", ""),
+                "mode": s.get("mode", "library"),
                 "min_level": s.get("min_level", fx_core.MIN_LEVEL_DBFS), "vocal": s.get("vocal", fx_core.VOCAL_MODE),
                 "gap_s": s.get("gap_s", fx_core.GAP_S), "group": s.get("group", fx_core.GROUP_BY_CAT),
                 "bundle": s.get("bundle", fx_core.BUNDLE_AFTER_RUN), "wild": s.get("wild", fx_core.WILD_CONTINUOUS),
@@ -113,7 +114,7 @@ class Api:
         s = self._settings
         s.update({"src": src, "dst": dst, "items": list(items or [])})
         for k in ("creator", "fmt", "min_s", "max_s", "test", "theme", "gap_s", "group", "bundle", "wild",
-                  "min_level", "vocal"):
+                  "min_level", "vocal", "mode"):
             if k in opts:
                 s[k] = opts[k]
         if src and flt is not None:
@@ -132,7 +133,7 @@ class Api:
             return ""
         return r[0] if isinstance(r, (list, tuple)) else r
 
-    def list_files(self, src, dst, items=None):
+    def list_files(self, src, dst, items=None, mode=None):
         """items: explicit absolute file paths (from drag and drop); None = the whole source folder"""
         if items:
             files = [p for p in items if os.path.isfile(p)]
@@ -144,6 +145,8 @@ class Api:
                 return {"ok": False, "msg": "Source folder not found"}
             src = os.path.abspath(src)
             files = fx_core.find_files(src, dst or os.path.join(src, "\0"))
+        if mode in ("library", "dx"):
+            fx_core.MODE = mode
         done = fx_core.read_done(dst) if dst and os.path.isdir(dst) else {}
         out, sr, bits, total = [], Counter(), Counter(), 0.0
         for p in files:
@@ -207,6 +210,8 @@ class Api:
             fx_core.GAP_S = max(0.0, float(opts.get("gap_s", fx_core.GAP_S)))
             fx_core.GROUP_BY_CAT = bool(opts.get("group", True))
             fx_core.WILD_CONTINUOUS = bool(opts.get("wild", True))
+            if opts.get("mode") in ("library", "dx"):
+                fx_core.MODE = opts["mode"]
             fx_core.MIN_LEVEL_DBFS = float(opts.get("min_level", fx_core.MIN_LEVEL_DBFS))
             if opts.get("vocal") in ("keep", "cut"):
                 fx_core.VOCAL_MODE = opts["vocal"]
@@ -298,7 +303,7 @@ class Api:
                         group_cat=opts.get("group", True), gap_s=float(opts.get("gap_s", fx_core.GAP_S)),
                         bundle=opts.get("bundle", True), wild_cont=opts.get("wild", True),
                         files=items or None, min_level=float(opts.get("min_level", fx_core.MIN_LEVEL_DBFS)),
-                        vocal=opts.get("vocal"), redo=bool(only))
+                        vocal=opts.get("vocal"), redo=bool(only), mode=opts.get("mode", "library"))
         except Exception as ex:
             self._push("log", f"ERROR: {ex}")
         self._running = False
