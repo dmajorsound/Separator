@@ -11,7 +11,7 @@ permissions:
 
 jobs:
   mac:
-    runs-on: macos-15          # Apple Silicon (arm64), so the AI runs on the Mac's GPU
+    runs-on: macos-26          # Apple Silicon (arm64), so the AI runs on the Mac GPU
     timeout-minutes: 75
     steps:
       - uses: actions/checkout@v4
