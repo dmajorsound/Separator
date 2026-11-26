@@ -39,6 +39,7 @@ input[type=radio]{accent-color:var(--blue-strong);margin:0}
   color:var(--dim);font-size:13px;font-weight:700;letter-spacing:.6px}
 .tabsbar button:hover{background:var(--btn);color:var(--text)}
 .tabsbar button.on{background:var(--panel);color:var(--text);border-color:var(--blue);border-width:2px;border-bottom:0;height:35px}
+.tabsbar.single button{display:none}
 .tabsbar .tabhint{margin-left:12px;font-size:12px;color:var(--dim);align-self:center}
 .head > *{flex-shrink:0}
 .head .chip,.head .stats{flex-shrink:1;min-width:0}
@@ -688,6 +689,10 @@ window.addEventListener('pywebviewready', async () => {
   api = window.pywebview.api; wire();
   const i = await api.init();
   S.src = i.src; S.items = i.items && i.items.length ? i.items : null; S.dst = i.dst; S.opts = i.opts; S.filter = i.filter; S.wavpack = i.wavpack;
+  const ed = i.edition || { name: 'Separator', features: ['library', 'dx'] };
+  document.querySelectorAll('#modeTop [data-v]').forEach((b) => { b.style.display = ed.features.includes(b.dataset.v) ? '' : 'none'; });
+  if (ed.features.length < 2) $('modeTop').classList.add('single');
+  document.querySelector('.brand b').textContent = ed.name; document.title = ed.name;
   $('ver').textContent = 'V ' + i.version; $('verFoot').textContent = 'V ' + i.version + ' - developed with AI assistance';
   $('siteLink').addEventListener('click', (e) => { e.preventDefault(); api.open_url('https://dmajorsound.com'); });
   api.check_update().then((u) => { if (u && u.latest) { $('updTxt').textContent = u.latest + ' is out'; $('upd').style.display = 'flex';

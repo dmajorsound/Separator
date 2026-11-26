@@ -11,6 +11,7 @@ import tkinter as tk
 from tkinter import ttk, filedialog
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import config  # noqa: E402
 import fx_core  # noqa: E402
 
 # ------------------------------------------------------------
@@ -89,11 +90,11 @@ class App:
         form.columnconfigure(1, weight=1)
         self.src = tk.StringVar(value=s.get("src", ""))
         self.dst = tk.StringVar(value=s.get("dst", ""))
-        self.creator = tk.StringVar(value=s.get("creator", fx_core.CREATOR_ID))
+        self.creator = tk.StringVar(value=s.get("creator", config.CREATOR_ID))
         self.test = tk.BooleanVar(value=s.get("test", True))
         self.fmt = tk.StringVar(value=s.get("fmt", "wav"))
-        self.min_s = tk.StringVar(value=str(s.get("min_s", fx_core.MIN_FILE_S)))
-        self.max_s = tk.StringVar(value=str(s.get("max_s", fx_core.MAX_FILE_S)))
+        self.min_s = tk.StringVar(value=str(s.get("min_s", config.MIN_FILE_S)))
+        self.max_s = tk.StringVar(value=str(s.get("max_s", config.MAX_FILE_S)))
         self.sort_ucs = tk.BooleanVar(value=False)
         self.split = tk.BooleanVar(value=False)
         self.keep_w = tk.StringVar()
@@ -230,9 +231,9 @@ class App:
 
     def _load_project(self, src):
         p = self.projects.get(os.path.abspath(src) if src else "", {})
-        self.keep_w.set(p.get("keep", ", ".join(fx_core.KEEP_TRACKS)))
-        self.drop_w.set(p.get("drop", ", ".join(fx_core.IGNORE_TRACKS)))
-        self.unknown.set(p.get("unknown", fx_core.UNKNOWN_TRACKS))
+        self.keep_w.set(p.get("keep", ", ".join(config.KEEP_TRACKS)))
+        self.drop_w.set(p.get("drop", ", ".join(config.IGNORE_TRACKS)))
+        self.unknown.set(p.get("unknown", config.UNKNOWN_TRACKS))
         self.sort_ucs.set(p.get("sort_ucs", False))
         self.split.set(p.get("split", False))
 
@@ -241,9 +242,9 @@ class App:
                 "sort_ucs": self.sort_ucs.get(), "split": self.split.get()}
 
     def _apply_filter(self):
-        fx_core.KEEP_TRACKS = [w.lower() for w in self._words(self.keep_w)]
-        fx_core.IGNORE_TRACKS = [w.lower() for w in self._words(self.drop_w)]
-        fx_core.UNKNOWN_TRACKS = self.unknown.get()
+        config.KEEP_TRACKS = [w.lower() for w in self._words(self.keep_w)]
+        config.IGNORE_TRACKS = [w.lower() for w in self._words(self.drop_w)]
+        config.UNKNOWN_TRACKS = self.unknown.get()
 
     def scan(self):
         src = self.src.get().strip()
@@ -310,8 +311,8 @@ class App:
         self.projects[os.path.abspath(src)] = self._project_now()
         save_settings({"projects": self.projects, "src": src, "dst": dst, "creator": self.creator.get().strip(),
                        "test": self.test.get(), "fmt": self.fmt.get(),
-                       "min_s": self._num(self.min_s, fx_core.MIN_FILE_S),
-                       "max_s": self._num(self.max_s, fx_core.MAX_FILE_S)})
+                       "min_s": self._num(self.min_s, config.MIN_FILE_S),
+                       "max_s": self._num(self.max_s, config.MAX_FILE_S)})
         self.stop_flag = False
         self.t_start = time.time()
         self.btn.configure(text="Stop")
@@ -323,13 +324,13 @@ class App:
         try:
             if self.analyzer is None:
                 self.analyzer = fx_core.Analyzer(log=lambda m: self.q.put(("log", m)))
-            fx_core.run(src, dst, creator=self.creator.get().strip() or fx_core.CREATOR_ID,
+            fx_core.run(src, dst, creator=self.creator.get().strip() or config.CREATOR_ID,
                         limit=20 if self.test.get() else 0,
                         log=lambda m: self.q.put(("log", m)),
                         progress=lambda i, n: self.q.put(("prog", (i, n))),
                         stop=lambda: self.stop_flag, analyzer=self.analyzer,
-                        min_s=self._num(self.min_s, fx_core.MIN_FILE_S),
-                        max_s=self._num(self.max_s, fx_core.MAX_FILE_S),
+                        min_s=self._num(self.min_s, config.MIN_FILE_S),
+                        max_s=self._num(self.max_s, config.MAX_FILE_S),
                         fmt=self.fmt.get(), sort_ucs=self.sort_ucs.get(), split=self.split.get(),
                         keep_words=self._words(self.keep_w), drop_words=self._words(self.drop_w),
                         unknown=self.unknown.get())

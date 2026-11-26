@@ -14,11 +14,32 @@ Get `Separator-X.Y-mac.dmg` from the [latest release](https://github.com/dmajors
 
 Builds come from GitHub Actions (`.github/workflows/build.yml`): every push to `main` builds the app and the disk image (with a self-test inside the finished app), every push to `main` publishes or updates the release for the version in `VERSION`.
 
-## Layout
-- `src/separator/fx_core.py` – analysis, cutting, UCS naming, metadata, project sausages
-- `src/separator/app.py` – window bridge (pywebview)
-- `src/separator/web/index.html` – the interface
-- `src/separator/gui.py` – simple fallback window
-- `packaging/Separator.spec` – PyInstaller build
+## Code layout
+`src/separator/`, each module only uses the ones above it:
+
+| Module | What it does |
+|---|---|
+| `config.py` | every setting, in one place |
+| `wavio.py` | WAV/BWF/RF64 reading and writing, markers, fades, WavPack |
+| `ucs.py` | UCS categories, AudioSet mapping, German terms, file names, descriptions |
+| `metadata.py` | recorder metadata (bext, iXML, INFO), track filter |
+| `analysis.py` | AI models (speech, sound classes, fingerprints) and per-take analysis |
+| `views.py` | data for the track view and the take list |
+| `files.py` | source files, drag and drop, done list, track-name scan |
+| `fx_library.py` | **feature** FX Library: UCS FX files, sausages, project sausages |
+| `dx_delete.py` | **feature** DX Delete: same files and names, only dialogue cut |
+| `engine.py` | run loop for both features, loads the feature modules on demand |
+| `edition.py` | which features an app contains |
+| `fx_core.py` | entry point the windows import (re-exports the modules) |
+| `app.py`, `web/index.html` | main window |
+| `player.py` | preview playback |
+| `gui.py` | simple fallback window |
+| `main.py` | start and build self-test |
+
+## Editions: one feature as its own app
+The same code builds three apps: **Separator** (both tabs, the release), **Separator FX** (FX Library only) and **Separator DX** (DX Delete only). A single-feature app does not contain the other feature's module, which helps to track down a bug.
+
+- From source: `SEPARATOR_EDITION=dx python src/separator/main.py`
+- On GitHub: Actions › Build Separator › Run workflow › edition `fx` or `dx`. The app comes as a zip in the run's artifacts; only `full` is released.
 
 V 1.2 - developed with AI assistance · dmajorsound.com

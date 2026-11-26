@@ -1,4 +1,4 @@
-"""Separator – Startpunkt der App (auch fuer den GitHub-Build)."""
+"""Separator – app entry point (also used by the GitHub build)."""
 import os
 import sys
 
@@ -7,7 +7,7 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 
 def selftest():
-    """Wird im GitHub-Build ausgefuehrt: prueft, ob alle Teile im App-Paket stecken und der Kern laeuft."""
+    """Run by the GitHub build inside the finished app: checks that every package is bundled and the engine runs."""
     import struct
     import tempfile
     import numpy as np
@@ -45,7 +45,10 @@ def selftest():
             self.last_emb = [None] * len(w)
             return [("AMBRoom", 0.9) for _ in w]
 
-    fx_core.run(src, dst, analyzer=Stub(), log=print, bundle=False)
+    import edition
+    for mode in edition.FEATURES:                   # every feature this app was built with
+        fx_core.run(src, os.path.join(dst, mode), analyzer=Stub(), log=print, bundle=False, mode=mode)
+    print("SELFTEST edition:", edition.NAME, edition.FEATURES)
     out = [f for _, _, fs in os.walk(dst) for f in fs if f.endswith(".wav")]
     print("SELFTEST files:", out, "wavpack:", fx_core.wavpack_bin())
     assert out, "keine Ausgabe"

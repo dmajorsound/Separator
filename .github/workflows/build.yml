@@ -5,6 +5,12 @@ on:
     branches: [main]
     tags: ["v*"]
   workflow_dispatch:
+    inputs:
+      edition:
+        description: "full = both tabs (released), fx or dx = one feature as its own app (for debugging, artifact only)"
+        default: full
+        type: choice
+        options: [full, fx, dx]
 
 permissions:
   contents: write
@@ -12,6 +18,9 @@ permissions:
 jobs:
   mac:
     runs-on: macos-latest      # Apple Silicon (arm64), so the AI runs on the Mac GPU
+    env:
+      # full = Separator with both tabs (released); fx / dx = one feature as its own app (artifact only)
+      SEPARATOR_EDITION: ${{ inputs.edition || 'full' }}
     timeout-minutes: 75
     steps:
       - uses: actions/checkout@v4
@@ -20,8 +29,11 @@ jobs:
         with:
           python-version: "3.12"
 
-      - name: Version
-        run: echo "V=$(cat VERSION)" >> "$GITHUB_ENV"
+      - name: Version and app name
+        run: |
+          echo "V=$(cat VERSION)" >> "$GITHUB_ENV"
+          case "$SEPARATOR_EDITION" in fx) N="Separator FX";; dx) N="Separator DX";; *) N="Separator";; esac
+          echo "APP=$N" >> "$GITHUB_ENV"
 
       - name: WavPack (bundled into the app)
         run: brew install wavpack
@@ -44,12 +56,23 @@ jobs:
         run: pyinstaller packaging/Separator.spec --noconfirm --clean
 
       - name: Sign (ad hoc, so Apple Silicon runs it)
-        run: codesign --force --deep --sign - dist/Separator.app
+        run: codesign --force --deep --sign - "dist/$APP.app"
 
       - name: Self-test inside the finished app
-        run: dist/Separator.app/Contents/MacOS/Separator --selftest
+        run: '"dist/$APP.app/Contents/MacOS/$APP" --selftest'
+
+      - name: Single-feature app (zip, for debugging)
+        if: env.SEPARATOR_EDITION != 'full'
+        run: ditto -c -k --keepParent "dist/$APP.app" "${APP// /-}-$V-mac.zip"
+
+      - uses: actions/upload-artifact@v4
+        if: env.SEPARATOR_EDITION != 'full'
+        with:
+          name: ${{ env.APP }}
+          path: "*-mac.zip"
 
       - name: Package (.pkg)
+        if: env.SEPARATOR_EDITION == 'full'
         run: |
           mkdir -p approot ui
           cp -R dist/Separator.app approot/
@@ -70,6 +93,7 @@ jobs:
           productbuild --distribution uninstall.xml --resources ui --package-path . "Separator-$V-mac-uninstall.pkg"
 
       - name: Disk image (.dmg) with the installer and the Privacy & Security helper
+        if: env.SEPARATOR_EDITION == 'full'
         run: |
           mkdir -p dmg/.background
           cp "Separator-$V-mac.pkg" "dmg/Install Separator.pkg"
@@ -112,6 +136,7 @@ jobs:
           hdiutil convert rw.dmg -format UDZO -imagekey zlib-level=9 -o "Separator-$V-mac.dmg"
 
       - uses: actions/upload-artifact@v4
+        if: env.SEPARATOR_EDITION == 'full'
         with:
           name: Separator-mac
           path: |
@@ -119,7 +144,7 @@ jobs:
             Separator-${{ env.V }}-mac-uninstall.pkg
 
       - name: Publish release (vVERSION, created or updated on every push to main)
-        if: github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/v')
+        if: env.SEPARATOR_EDITION == 'full' && (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/v'))
         env:
           GH_TOKEN: ${{ github.token }}
         run: |

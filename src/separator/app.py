@@ -1,5 +1,5 @@
-"""Separator – App-Fenster (HTML-Oberflaeche in einem eigenen Mac-Fenster via pywebview).
-Faellt auf das einfache Tk-Fenster (gui.py) zurueck, falls pywebview fehlt."""
+"""Separator – main window: the HTML interface in its own Mac window (pywebview), bridged to the engine.
+Falls back to the simple Tk window (gui.py) when pywebview is missing."""
 
 import os
 import sys
@@ -12,6 +12,8 @@ from collections import Counter
 
 HERE = getattr(sys, "_MEIPASS", os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, HERE)
+import config  # noqa: E402
+import edition  # noqa: E402
 import fx_core  # noqa: E402
 import player  # noqa: E402
 
@@ -75,27 +77,31 @@ class Api:
         if not f:
             return
         words = lambda s: [w.strip().lower() for w in str(s).replace(";", ",").split(",") if w.strip()]
-        fx_core.KEEP_TRACKS = words(f.get("keep", ""))
-        fx_core.IGNORE_TRACKS = words(f.get("drop", ""))
+        config.KEEP_TRACKS = words(f.get("keep", ""))
+        config.IGNORE_TRACKS = words(f.get("drop", ""))
         if f.get("unknown") in ("fallback", "keep", "drop"):
-            fx_core.UNKNOWN_TRACKS = f["unknown"]
+            config.UNKNOWN_TRACKS = f["unknown"]
 
     # ---------- Einstellungen ----------
     def init(self):
         s = self._settings
+        mode = s.get("mode", "library")
+        if mode not in edition.FEATURES:
+            mode = edition.FEATURES[0]
         return {
             "version": VERSION,
+            "edition": {"key": edition.KEY, "name": edition.NAME, "features": edition.FEATURES},
             "src": s.get("src", ""), "dst": s.get("dst", ""),
             "items": [p for p in s.get("items", []) if os.path.isfile(p)],
             "opts": {
-                "creator": s.get("creator", fx_core.CREATOR_ID), "fmt": s.get("fmt", "wav"),
-                "min_s": s.get("min_s", fx_core.MIN_FILE_S), "max_s": s.get("max_s", fx_core.MAX_FILE_S),
+                "creator": s.get("creator", config.CREATOR_ID), "fmt": s.get("fmt", "wav"),
+                "min_s": s.get("min_s", config.MIN_FILE_S), "max_s": s.get("max_s", config.MAX_FILE_S),
                 "test": s.get("test", True), "theme": s.get("theme", "dark"),
                 "audio_device": s.get("audio_device", ""),
-                "mode": s.get("mode", "library"),
-                "min_level": s.get("min_level", fx_core.MIN_LEVEL_DBFS), "vocal": s.get("vocal", fx_core.VOCAL_MODE),
-                "gap_s": s.get("gap_s", fx_core.GAP_S), "group": s.get("group", fx_core.GROUP_BY_CAT),
-                "bundle": s.get("bundle", fx_core.BUNDLE_AFTER_RUN), "wild": s.get("wild", fx_core.WILD_CONTINUOUS),
+                "mode": mode,
+                "min_level": s.get("min_level", config.MIN_LEVEL_DBFS), "vocal": s.get("vocal", config.VOCAL_MODE),
+                "gap_s": s.get("gap_s", config.GAP_S), "group": s.get("group", config.GROUP_BY_CAT),
+                "bundle": s.get("bundle", config.BUNDLE_AFTER_RUN), "wild": s.get("wild", config.WILD_CONTINUOUS),
             },
             "filter": self.project_filter(s.get("src", "")),
             "wavpack": bool(fx_core.wavpack_bin()),
@@ -104,9 +110,9 @@ class Api:
     def project_filter(self, src):
         p = self._settings.get("projects", {}).get(os.path.abspath(src) if src else "", {})
         return {
-            "keep": p.get("keep", ", ".join(fx_core.KEEP_TRACKS)),
-            "drop": p.get("drop", ", ".join(fx_core.IGNORE_TRACKS)),
-            "unknown": p.get("unknown", fx_core.UNKNOWN_TRACKS),
+            "keep": p.get("keep", ", ".join(config.KEEP_TRACKS)),
+            "drop": p.get("drop", ", ".join(config.IGNORE_TRACKS)),
+            "unknown": p.get("unknown", config.UNKNOWN_TRACKS),
             "sort_ucs": p.get("sort_ucs", False), "split": p.get("split", False),
         }
 
@@ -146,7 +152,7 @@ class Api:
             src = os.path.abspath(src)
             files = fx_core.find_files(src, dst or os.path.join(src, "\0"))
         if mode in ("library", "dx"):
-            fx_core.MODE = mode
+            config.MODE = mode
         done = fx_core.read_done(dst) if dst and os.path.isdir(dst) else {}
         out, sr, bits, total = [], Counter(), Counter(), 0.0
         for p in files:
@@ -205,16 +211,16 @@ class Api:
         """Einzelnes File analysieren (Schnitt + FX), ohne zu schreiben"""
         self._apply_filter(flt)
         if opts:
-            fx_core.MIN_FILE_S = max(fx_core.MIN_SEGMENT_S, float(opts.get("min_s", fx_core.MIN_FILE_S)))
-            fx_core.MAX_FILE_S = max(0.0, float(opts.get("max_s", fx_core.MAX_FILE_S)))
-            fx_core.GAP_S = max(0.0, float(opts.get("gap_s", fx_core.GAP_S)))
-            fx_core.GROUP_BY_CAT = bool(opts.get("group", True))
-            fx_core.WILD_CONTINUOUS = bool(opts.get("wild", True))
+            config.MIN_FILE_S = max(config.MIN_SEGMENT_S, float(opts.get("min_s", config.MIN_FILE_S)))
+            config.MAX_FILE_S = max(0.0, float(opts.get("max_s", config.MAX_FILE_S)))
+            config.GAP_S = max(0.0, float(opts.get("gap_s", config.GAP_S)))
+            config.GROUP_BY_CAT = bool(opts.get("group", True))
+            config.WILD_CONTINUOUS = bool(opts.get("wild", True))
             if opts.get("mode") in ("library", "dx"):
-                fx_core.MODE = opts["mode"]
-            fx_core.MIN_LEVEL_DBFS = float(opts.get("min_level", fx_core.MIN_LEVEL_DBFS))
+                config.MODE = opts["mode"]
+            config.MIN_LEVEL_DBFS = float(opts.get("min_level", config.MIN_LEVEL_DBFS))
             if opts.get("vocal") in ("keep", "cut"):
-                fx_core.VOCAL_MODE = opts["vocal"]
+                config.VOCAL_MODE = opts["vocal"]
         try:
             if self._analyzer is None:
                 self._push("log", "Loading AI models … (first time only, takes a moment)")
@@ -290,19 +296,19 @@ class Api:
                 self._push("log", "Loading AI models … (first time only, takes a moment)")
                 self._analyzer = fx_core.Analyzer(log=lambda m: self._push("log", m))
             words = lambda s: [w.strip() for w in str(s).replace(";", ",").split(",") if w.strip()]
-            fx_core.run(src, dst, creator=(opts.get("creator") or fx_core.CREATOR_ID).strip(),
+            fx_core.run(src, dst, creator=(opts.get("creator") or config.CREATOR_ID).strip(),
                         limit=20 if opts.get("test") else 0,
                         log=lambda m: self._push("log", m),
                         stop=lambda: self._stop_flag, analyzer=self._analyzer,
-                        min_s=float(opts.get("min_s", fx_core.MIN_FILE_S)),
-                        max_s=float(opts.get("max_s", fx_core.MAX_FILE_S)),
+                        min_s=float(opts.get("min_s", config.MIN_FILE_S)),
+                        max_s=float(opts.get("max_s", config.MAX_FILE_S)),
                         fmt=opts.get("fmt", "wav"), sort_ucs=flt.get("sort_ucs", False),
                         split=flt.get("split", False), keep_words=words(flt.get("keep", "")),
                         drop_words=words(flt.get("drop", "")), unknown=flt.get("unknown"),
                         on_event=self._on_event, only=only,
-                        group_cat=opts.get("group", True), gap_s=float(opts.get("gap_s", fx_core.GAP_S)),
+                        group_cat=opts.get("group", True), gap_s=float(opts.get("gap_s", config.GAP_S)),
                         bundle=opts.get("bundle", True), wild_cont=opts.get("wild", True),
-                        files=items or None, min_level=float(opts.get("min_level", fx_core.MIN_LEVEL_DBFS)),
+                        files=items or None, min_level=float(opts.get("min_level", config.MIN_LEVEL_DBFS)),
                         vocal=opts.get("vocal"), redo=bool(only), mode=opts.get("mode", "library"))
         except Exception as ex:
             self._push("log", f"ERROR: {ex}")
@@ -310,7 +316,7 @@ class Api:
         self._push("stopped", {"stopped": self._stop_flag})
 
     def bundle(self, dst, opts):
-        """Projekt-Sausages aus allen bisher gemerkten Regionen (neu) bauen"""
+        """(Re)build the project sausages from all regions recorded so far"""
         if self._running:
             return {"ok": False, "msg": "Already running"}
         if not dst or not os.path.isdir(dst):
@@ -322,10 +328,10 @@ class Api:
                 if self._analyzer is None:
                     self._push("log", "Loading AI models … (first time only, takes a moment)")
                     self._analyzer = fx_core.Analyzer(log=lambda m: self._push("log", m))
-                fx_core.GAP_S = max(0.0, float(opts.get("gap_s", fx_core.GAP_S)))
-                fx_core.MAX_FILE_S = max(0.0, float(opts.get("max_s", fx_core.MAX_FILE_S)))
-                fx_core.OUTPUT_FORMAT = opts.get("fmt", "wav")
-                fx_core.bundle_project(dst, self._analyzer, (opts.get("creator") or fx_core.CREATOR_ID).strip(),
+                config.GAP_S = max(0.0, float(opts.get("gap_s", config.GAP_S)))
+                config.MAX_FILE_S = max(0.0, float(opts.get("max_s", config.MAX_FILE_S)))
+                config.OUTPUT_FORMAT = opts.get("fmt", "wav")
+                fx_core.feature("library").bundle_project(dst, self._analyzer, (opts.get("creator") or config.CREATOR_ID).strip(),
                                        log=lambda m: self._push("log", m), on_event=self._on_event)
             except Exception as ex:
                 self._push("log", f"ERROR project sausages: {ex}")
@@ -395,7 +401,7 @@ def main():
     api = Api()
     s = api._settings
     win = webview.create_window(
-        "Separator", os.path.join(HERE, "web", "index.html"), js_api=api,
+        edition.NAME, os.path.join(HERE, "web", "index.html"), js_api=api,
         width=s.get("win_w", 1280), height=s.get("win_h", 820), min_size=(1040, 680),
         background_color="#2B2D31")
     api._window = win
