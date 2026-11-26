@@ -42,7 +42,7 @@ coll = COLLECT(exe, a.binaries, a.datas, name="Separator")
 app = BUNDLE(
     coll,
     name="Separator.app",
-    icon=os.path.join(ROOT, "assets", "Separator.icns") if os.path.exists(os.path.join(ROOT, "assets", "Separator.icns")) else None,
+    icon=os.path.join(ROOT, "assets", "Separator.icns") if os.path.exists(os.path.join(ROOT, "assets", "Separator.icns")) else None  # built in CI from Separator_icon_1024.png,
     bundle_identifier="com.dmajorsound.separator",
     version=VERSION,
     info_plist={

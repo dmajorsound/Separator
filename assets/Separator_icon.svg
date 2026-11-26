@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024">
+  <title>Separator</title>
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#26272B"/>
+      <stop offset="1" stop-color="#1C1D21"/>
+    </linearGradient>
+  </defs>
+  <rect x="0" y="0" width="1024" height="1024" rx="226" fill="url(#bg)"/>
+  <rect x="3" y="3" width="1018" height="1018" rx="223" fill="none" stroke="#3A3C42" stroke-width="6"/>
+  <g stroke="#FFFFFF" stroke-width="64" stroke-linecap="round">
+    <line x1="214" y1="442" x2="214" y2="582"/>
+    <line x1="334" y1="322" x2="334" y2="702"/>
+    <line x1="690" y1="362" x2="690" y2="662"/>
+    <line x1="810" y1="452" x2="810" y2="572"/>
+  </g>
+  <rect x="436" y="282" width="152" height="460" rx="40" fill="none" stroke="#9DEBC0"
+        stroke-width="26" stroke-dasharray="46 36.5" stroke-dashoffset="-18" stroke-linecap="round"/>
+  <circle cx="512" cy="512" r="26" fill="#9DEBC0"/>
+</svg>
