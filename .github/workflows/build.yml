@@ -79,7 +79,7 @@ jobs:
           cat > "dmg/Blocked? Open Privacy & Security.webloc" <<'PLIST'
           <?xml version="1.0" encoding="UTF-8"?>
           <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
-          <plist version="1.0"><dict><key>URL</key><string>x-apple.systempreferences:com.apple.preference.security?General</string></dict></plist>
+          <plist version="1.0"><dict><key>URL</key><string>x-apple.systempreferences:com.apple.settings.PrivacySecurity.extension</string></dict></plist>
           PLIST
           sed -i '' 's/^          //' "dmg/Blocked? Open Privacy & Security.webloc"
           tiffutil -cathidpicheck installer/mac_dmg/background.png installer/mac_dmg/background@2x.png -out dmg/.background/background.tiff
