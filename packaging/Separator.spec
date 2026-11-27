@@ -55,7 +55,7 @@ coll = COLLECT(exe, a.binaries, a.datas, name=APP_NAME)
 app = BUNDLE(
     coll,
     name=APP_NAME + ".app",
-    icon=os.path.join(ROOT, "assets", "Separator.icns") if os.path.exists(os.path.join(ROOT, "assets", "Separator.icns")) else None  # built in CI from Separator_icon_1024.png,
+    icon=os.path.join(ROOT, "assets", "Separator.icns") if os.path.exists(os.path.join(ROOT, "assets", "Separator.icns")) else None,  # built in CI from Separator_icon_1024.png
     bundle_identifier=BUNDLE_ID,
     version=VERSION,
     info_plist={
