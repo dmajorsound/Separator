@@ -16,8 +16,9 @@ import config  # noqa: E402
 import edition  # noqa: E402
 import fx_core  # noqa: E402
 import player  # noqa: E402
+import updater  # noqa: E402
 
-VERSION = "1.2"
+VERSION = "1.3"
 REPO = "dmajorsound/Separator"
 APP_DIR = os.path.expanduser("~/Library/Application Support/Separator")
 SETTINGS = os.path.join(APP_DIR, "settings.json")
@@ -43,6 +44,8 @@ def save_settings(d):
 class Api:
     def __init__(self):
         self._window = None
+        self._upd = {}
+        self._dl = updater.Download()
         self._settings = load_settings()
         self._lock = threading.Lock()
         self._events = []          # (seq, kind, data)
@@ -237,23 +240,46 @@ class Api:
             subprocess.run(["open", url])
         return True
 
+    # ---------- Updates (see updater.py) ----------
     def check_update(self):
-        """Check GitHub for a newer release; silent when offline (SEPARATOR_UPD=x.y shows the notice for testing)"""
-        import urllib.request
+        """Newer release on GitHub? {"latest", "url", "asset", "folder"}; {} when not or offline.
+        SEPARATOR_UPD=x.y shows the note for testing (SEPARATOR_UPD_ASSET: an installer address)."""
         if os.environ.get("SEPARATOR_UPD"):
-            return {"latest": os.environ["SEPARATOR_UPD"], "url": f"https://github.com/{REPO}/releases/latest"}
-        try:
-            req = urllib.request.Request(f"https://api.github.com/repos/{REPO}/releases/latest",
-                                         headers={"Accept": "application/vnd.github+json", "User-Agent": "Separator"})
-            with urllib.request.urlopen(req, timeout=4) as r:
-                d = json.load(r)
-            tag = str(d.get("tag_name", "")).lstrip("vV")
-            num = lambda v: tuple(int(x) for x in re.findall(r"\d+", v)[:3])
-            if tag and num(tag) > num(VERSION):
-                return {"latest": tag, "url": d.get("html_url", f"https://github.com/{REPO}/releases/latest")}
-        except Exception:
-            pass
-        return {}
+            u = {"latest": os.environ["SEPARATOR_UPD"], "url": f"https://github.com/{REPO}/releases/latest",
+                 "asset": os.environ.get("SEPARATOR_UPD_ASSET", "")}
+        else:
+            u = updater.check(VERSION)
+        self._upd = u
+        if u:
+            u["folder"] = self.update_folder()
+        return u
+
+    def update_folder(self):
+        f = load_settings().get("update_folder", "")
+        return f if f and os.path.isdir(f) else updater.default_folder()
+
+    def update_pick_folder(self):
+        f = self.pick_folder("Separator: choose where updates are downloaded to")
+        if f:
+            d = load_settings()
+            d["update_folder"] = f
+            save_settings(d)
+        return self.update_folder()
+
+    def update_download(self, install=True):
+        asset = (getattr(self, "_upd", None) or {}).get("asset")
+        if not asset:
+            return False
+        return self._dl.start(asset, self.update_folder(), install=bool(install))
+
+    def update_state(self):
+        return self._dl.snapshot()
+
+    def update_install(self):
+        return updater.open_installer(self._dl.snapshot()["path"])
+
+    def update_reveal(self):
+        return updater.reveal(self._dl.snapshot()["path"])
 
     def open_folder(self, path):
         if path and os.path.isdir(path):

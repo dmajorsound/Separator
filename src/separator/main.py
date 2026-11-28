@@ -58,6 +58,11 @@ def selftest():
 if __name__ == "__main__":
     if "--selftest" in sys.argv:
         selftest()
+    elif "--update-test" in sys.argv:
+        # GitHub build: Separator --update-test <installer URL of a released version> <folder>
+        import updater
+        i = sys.argv.index("--update-test")
+        sys.exit(updater.self_test(sys.argv[i + 1], sys.argv[i + 2]))
     else:
         import app
         app.main()

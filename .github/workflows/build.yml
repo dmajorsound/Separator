@@ -61,6 +61,11 @@ jobs:
       - name: Self-test inside the finished app
         run: '"dist/$APP.app/Contents/MacOS/$APP" --selftest'
 
+      # same code as the footer note: downloads the already released 1.2 installer (fixed version, not the
+      # new one) into the runner's temp folder and checks that it arrived whole. Fails -> nothing is published.
+      - name: Check the update download (fetches the released 1.2 installer like the footer note does)
+        run: '"dist/$APP.app/Contents/MacOS/$APP" --update-test https://github.com/dmajorsound/Separator/releases/download/v1.2/Separator-1.2-mac.dmg "$RUNNER_TEMP"'
+
       - name: Single-feature app (zip, for debugging)
         if: env.SEPARATOR_EDITION != 'full'
         run: ditto -c -k --keepParent "dist/$APP.app" "${APP// /-}-$V-mac.zip"

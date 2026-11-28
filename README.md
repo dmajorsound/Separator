@@ -42,4 +42,4 @@ The same code builds three apps: **Separator** (both tabs, the release), **Separ
 - From source: `SEPARATOR_EDITION=dx python src/separator/main.py`
 - On GitHub: Actions › Build Separator › Run workflow › edition `fx` or `dx`. The app comes as a zip in the run's artifacts; only `full` is released.
 
-V 1.2 - developed with AI assistance · dmajorsound.com
+V 1.3 - developed with AI assistance · dmajorsound.com

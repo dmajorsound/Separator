@@ -152,7 +152,15 @@ button.icon{width:30px;padding:0}
 .foot .logo{height:20px;width:auto;opacity:.85}
 [data-theme="dark"] .foot .logo{filter:invert(1)}
 .upd{display:flex;align-items:center;gap:6px;color:#F06E6E !important}
-.upd i{width:7px;height:7px;border-radius:50%;background:#F06E6E;animation:blink 1.4s steps(1) infinite}
+.upd i{width:7px;height:7px;border-radius:50%;background:#F06E6E;box-sizing:border-box;animation:blink 1.4s steps(1) infinite}
+.upd.ring i{animation:none;background:conic-gradient(#F06E6E var(--p,0%),transparent 0);border:1.5px solid #F06E6E}
+.upd.there i,.upd.failed i{animation:none}
+.ctx{position:fixed;z-index:60;background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:4px;min-width:230px;display:none;box-shadow:0 10px 30px rgba(0,0,0,.35);font-size:12px}
+.ctx.open{display:block}
+.ctx div{padding:6px 10px;border-radius:5px;cursor:pointer;white-space:nowrap}
+.ctx div:hover{background:var(--line)}
+.ctx div.off{opacity:.4;pointer-events:none}
+.ctx hr{border:0;border-top:1px solid var(--line);margin:4px 2px}
 @keyframes blink{50%{opacity:0}}
 .overlay{position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:40;display:none;align-items:center;justify-content:center}
 .overlay.open{display:flex}
@@ -287,10 +295,11 @@ select{font:inherit;color:var(--text);background:var(--input);border:1px solid v
 
   <div class="info"><span id="iFile" style="font-weight:600"></span><span class="msg" id="iMsg">Ready</span><div class="prog"><div id="progBar"></div></div><span id="iCount">0 / 0</span></div>
   <div class="help" id="helpLine">Track checkboxes and the track filter decide what goes into the FX files. Dialogue is cut, originals stay untouched.</div>
-  <div class="foot"><span id="verFoot">V 1.2 - developed with AI assistance</span><span class="grow"></span>
+  <div class="foot"><span id="verFoot">V 1.3 - developed with AI assistance</span><span class="grow"></span>
     <a class="upd" id="upd" href="#" style="display:none"><i></i><span id="updTxt"></span></a>
     <a class="site" href="#" id="siteLink">dmajorsound.com</a><img class="logo" src="dmajor_mark.png" alt="dmajorsound"></div>
 </div>
+<div class="ctx" id="updMenu"></div>
 
 <div class="overlay" id="help"><div class="card">
   <h2>Separator</h2>
@@ -699,9 +708,7 @@ window.addEventListener('pywebviewready', async () => {
   $('ver').textContent = 'V ' + i.version; $('verFoot').textContent = 'V ' + i.version + ' - developed with AI assistance';
   $('siteLink').addEventListener('click', (e) => { e.preventDefault(); api.open_url('https://dmajorsound.com'); });
   $('manualBtn').addEventListener('click', () => api.open_url('https://dmajorsound.com/software/separator/manual.html'));
-  api.check_update().then((u) => { if (u && u.latest) { $('updTxt').textContent = u.latest + ' is out'; $('upd').style.display = 'flex';
-    $('upd').title = 'Separator ' + u.latest + ' is out. Click to open the download page.';
-    $('upd').onclick = (e) => { e.preventDefault(); api.open_url(u.url); }; } }).catch(() => {});
+  api.check_update().then((u) => { if (u && u.latest) { U.info = u; $('upd').style.display = 'flex'; updPaint(); } }).catch(() => {});
   document.documentElement.dataset.theme = S.opts.theme || 'dark';
   $('minS').value = S.opts.min_s; $('maxS').value = S.opts.max_s; $('creator').value = S.opts.creator; $('test').checked = !!S.opts.test;
   $('gapS').value = S.opts.gap_s ?? 0.5; $('minLevel').value = S.opts.min_level ?? -55; $('vocal').value = S.opts.vocal || 'keep'; $('group').checked = S.opts.group !== false;
@@ -709,6 +716,60 @@ window.addEventListener('pywebviewready', async () => {
   $('diag').checked = !!S.opts.diag; $('siblings').checked = S.opts.siblings !== false;
   syncFilterInputs(); renderAll(); if (S.src) loadFiles(); poll();
 });
+
+// ---------- Update note in the footer: x.y is out -> downloading -> downloaded / failed ----------
+const U = { info: null, dl: { state: 0, progress: 0, path: '', error: '' }, timer: null };
+const shortDir = (d) => (d || '').replace(/\/+$/, '').split('/').pop() || d;
+function updPaint() {
+  const u = U.info; if (!u) return;
+  const a = $('upd'), d = U.dl, v = u.latest, direct = !!u.asset;
+  a.classList.remove('ring', 'there', 'failed'); a.style.removeProperty('--p');
+  let note = v + ' is out', tip;
+  if (d.state === 1) {
+    note = d.progress >= 0 ? 'Downloading ' + v + ' \u2026 ' + Math.round(d.progress * 100) + '%' : 'Downloading ' + v + ' \u2026';
+    a.classList.add('ring'); a.style.setProperty('--p', Math.max(0, d.progress) * 100 + '%');
+    tip = 'Separator ' + v + ' is coming from GitHub into ' + u.folder + '.';
+  } else if (d.state === 2) {
+    note = v + ' downloaded'; a.classList.add('there');
+    tip = 'Separator ' + v + ' is in ' + u.folder + '. Click to install it (quit Separator before you click Install). Right-click for more.';
+  } else if (d.state === 3) {
+    note = 'Download failed'; a.classList.add('failed');
+    tip = 'Separator ' + v + ' could not be downloaded (' + (d.error || 'no answer') + '). Click to try again, right-click to open the page instead.';
+  } else {
+    tip = direct ? 'Separator ' + v + ' is out. Click to download and install it (quit Separator before you click Install). Right-click: download only, the download folder, what\'s new.'
+                 : 'Separator ' + v + ' is out. Click to open the download page.';
+  }
+  $('updTxt').textContent = note; a.title = tip;
+}
+function updPoll() {
+  clearInterval(U.timer);
+  U.timer = setInterval(() => api.update_state().then((d) => { U.dl = d; updPaint(); if (d.state !== 1) clearInterval(U.timer); }), 300);
+}
+function updStart(install) { api.update_download(install).then((ok) => { if (ok) { U.dl = { state: 1, progress: 0 }; updPaint(); updPoll(); } }); }
+function updClick(e) {
+  e.preventDefault(); const u = U.info; if (!u) return;
+  if (!u.asset) api.open_url(u.url);
+  else if (U.dl.state === 2) api.update_install();
+  else if (U.dl.state !== 1) updStart(true);
+}
+function updMenu(e) {
+  e.preventDefault(); e.stopPropagation(); const u = U.info; if (!u) return;
+  const m = $('updMenu'), d = U.dl.state, direct = !!u.asset, item = (t, fn, on = true) => ({ t, fn, on });
+  const rows = d === 2 ? [item('Install now', () => api.update_install()), item('Show in Finder', () => api.update_reveal())]
+                       : [item('Download and install', () => updStart(true), direct && d !== 1),
+                          item('Download only (install later)', () => updStart(false), direct && d !== 1)];
+  rows.push(null, item('Download to: ' + shortDir(u.folder) + ' \u2026', () => api.update_pick_folder().then((f) => { u.folder = f; updPaint(); }), d !== 1),
+            item('What\'s new (release page)', () => api.open_url(u.url)));
+  m.innerHTML = '';
+  rows.forEach((r) => { if (!r) { m.appendChild(document.createElement('hr')); return; }
+    const el = document.createElement('div'); el.textContent = r.t; if (!r.on) el.className = 'off';
+    el.onclick = () => { m.classList.remove('open'); r.fn(); }; m.appendChild(el); });
+  m.classList.add('open');
+  const w = m.offsetWidth, h = m.offsetHeight;
+  m.style.left = Math.min(e.clientX, innerWidth - w - 8) + 'px'; m.style.top = Math.max(8, e.clientY - h - 6) + 'px';
+}
+document.addEventListener('click', () => $('updMenu').classList.remove('open'));
+$('upd').addEventListener('click', updClick); $('upd').addEventListener('contextmenu', updMenu);
 </script>
 </body>
 </html>
